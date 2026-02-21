@@ -14,7 +14,7 @@ Secrets:
 
 import os
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
@@ -53,10 +53,35 @@ def fair_rent_page():
     return FileResponse(os.path.join(HTML_DIR, "ri-fair-rent.html"))
 
 
+@app.get("/fair-rent/manage")
+def admin_page():
+    """Hidden admin panel. Not linked from main site. Add noindex header."""
+    response = FileResponse(os.path.join(HTML_DIR, "admin.html"))
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
 # ---- Health ----
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/robots.txt")
+def robots():
+    """Exclude hidden admin path from crawlers."""
+    return PlainTextResponse("User-agent: *\nDisallow: /fair-rent/manage\n")
+
+
+# ---- Board Config (Supabase for Tenant Board forum) ----
+@app.get("/api/board-config")
+def board_config():
+    """Public config for Tenant Board frontend (Supabase client init)."""
+    from python.config import settings
+    return {
+        "supabaseUrl": settings.supabase_url or "",
+        "supabaseAnonKey": settings.supabase_anon_key or "",
+    }
 
 
 # ---- API Models ----

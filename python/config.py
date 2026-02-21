@@ -13,6 +13,8 @@ load_dotenv()
 @dataclass(frozen=True)
 class Settings:
     census_api_key: str | None = os.getenv("CENSUS_API_KEY")
+    supabase_url: str | None = os.getenv("SUPABASE_URL")
+    supabase_anon_key: str | None = os.getenv("SUPABASE_ANON_KEY")
 
 
 settings = Settings()
