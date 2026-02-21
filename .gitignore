@@ -1,2 +1,4 @@
 # Do not change
 .env
+python/data/zillow/
+.env
