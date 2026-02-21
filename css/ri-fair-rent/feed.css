@@ -5,6 +5,40 @@
   padding: 32px 20px;
 }
 
+.auth-gate {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.auth-title {
+  font-family: var(--serif);
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.auth-subtitle {
+  font-size: 13px;
+  color: var(--muted2);
+  margin-top: 6px;
+}
+
+.auth-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .filters {
   display: flex;
   gap: 6px;
@@ -296,4 +330,13 @@
   color: var(--muted);
   font-size: 13px;
   line-height: 2;
+}
+
+@media (max-width: 700px) {
+  .auth-row,
+  .auth-actions,
+  .reply-compose {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
 }

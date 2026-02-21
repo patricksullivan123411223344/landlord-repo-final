@@ -1,23 +1,158 @@
 /**
- * ri-fair-rent.js — PVD Tenant Board
+ * ri-fair-rent.js â€” PVD Tenant Board
  * Uses Supabase for forum data when configured; falls back to localStorage.
  * Wired to app backend: /zips, /api/ai-answer, /api/board-config
  */
 
 const $ = (id) => document.getElementById(id);
 
-// ── SUPABASE ──────────────────────────────────────────────────────
-let supabase = null;
+// ---- SUPABASE --------------------------------------------------------------
+let supabaseClient = null;
+let currentSession = null;
+
+function isSignedIn() {
+  return Boolean(currentSession?.user);
+}
+
+function showAuthMsg(text, isError = false) {
+  const el = $("auth-msg");
+  if (!el) return;
+  el.textContent = text || "";
+  el.style.display = text ? "block" : "none";
+  el.style.color = isError ? "#8f2d14" : "#2d6a4f";
+}
+
+function setAuthUI() {
+  const authUser = $("auth-user");
+  const signoutBtn = $("btn-signout");
+  const authGate = $("auth-gate");
+  const boardContent = $("board-content");
+
+  if (!supabaseClient) {
+    if (authUser) authUser.textContent = "Local mode";
+    if (signoutBtn) signoutBtn.style.display = "none";
+    if (authGate) authGate.style.display = "none";
+    if (boardContent) boardContent.style.display = "block";
+    return;
+  }
+
+  if (isSignedIn()) {
+    if (authUser) authUser.textContent = currentSession.user.email || "Signed in";
+    if (signoutBtn) signoutBtn.style.display = "inline-flex";
+    if (authGate) authGate.style.display = "none";
+    if (boardContent) boardContent.style.display = "block";
+    showAuthMsg("");
+    return;
+  }
+
+  if (authUser) authUser.textContent = "Not signed in";
+  if (signoutBtn) signoutBtn.style.display = "none";
+  if (authGate) authGate.style.display = "block";
+  if (boardContent) boardContent.style.display = "none";
+}
+
+function requireAuth(actionLabel) {
+  if (!supabaseClient || isSignedIn()) return true;
+  const action = actionLabel || "use the board";
+  showAuthMsg(`Please sign in to ${action}.`, true);
+  return false;
+}
 
 async function initSupabase() {
   try {
     const res = await fetch("/api/board-config");
     const cfg = await res.json();
     if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase?.createClient) {
-      supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+      supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+
+      const { data } = await supabaseClient.auth.getSession();
+      currentSession = data?.session ?? null;
+
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        currentSession = session;
+        setAuthUI();
+        if (session) {
+          render();
+        }
+      });
     }
-  } catch {}
+  } catch {
+    supabaseClient = null;
+  }
 }
+
+async function signIn() {
+  if (!supabaseClient) return;
+  const email = $("auth-email")?.value?.trim();
+  const password = $("auth-password")?.value || "";
+  if (!email || !password) {
+    showAuthMsg("Enter email and password.", true);
+    return;
+  }
+
+  const btn = $("btn-signin");
+  if (btn) btn.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      showAuthMsg(error.message || "Sign in failed.", true);
+      return;
+    }
+    currentSession = data?.session ?? currentSession;
+    showAuthMsg("Signed in.");
+    setAuthUI();
+    await render();
+  } catch {
+    showAuthMsg("Sign in failed.", true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function signUp() {
+  if (!supabaseClient) return;
+  const email = $("auth-email")?.value?.trim();
+  const password = $("auth-password")?.value || "";
+  if (!email || !password) {
+    showAuthMsg("Enter email and password.", true);
+    return;
+  }
+  if (password.length < 6) {
+    showAuthMsg("Password must be at least 6 characters.", true);
+    return;
+  }
+
+  const btn = $("btn-signup");
+  if (btn) btn.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) {
+      showAuthMsg(error.message || "Sign up failed.", true);
+      return;
+    }
+    currentSession = data?.session ?? currentSession;
+    showAuthMsg("Account created. If email confirmation is enabled, verify your email, then sign in.");
+    setAuthUI();
+    if (isSignedIn()) await render();
+  } catch {
+    showAuthMsg("Sign up failed.", true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function signOut() {
+  if (!supabaseClient) return;
+  try {
+    await supabaseClient.auth.signOut();
+  } catch {}
+  currentSession = null;
+  setAuthUI();
+}
+
+window.signIn = signIn;
+window.signUp = signUp;
+window.signOut = signOut;
 
 function getVoterId() {
   let id = localStorage.getItem("pvd-voter-id");
@@ -48,14 +183,14 @@ function dbToPost(row, replies = []) {
   };
 }
 
-// ── SEED DATA ────────────────────────────────────────────────────
+// ---- SEED DATA -------------------------------------------------------------
 const SEED = [
   {
     id: "s1",
     type: "roommate",
     name: "QuietGradStudent",
     zip: "02906",
-    title: "Looking for a room near College Hill — $950/mo budget",
+    title: "Looking for a room near College Hill â€” $950/mo budget",
     body: "PhD student at Brown, mostly home evenings studying. Very clean, no parties. Would love a calm place within walking distance of campus.",
     budget: 950,
     movein: "2026-03",
@@ -71,14 +206,14 @@ const SEED = [
     type: "tenant",
     name: "Anonymous",
     zip: "02906",
-    title: 'Landlord kept my full $1,400 deposit for "cleaning" — is this legal?',
+    title: 'Landlord kept my full $1,400 deposit for "cleaning" â€” is this legal?',
     body: "Moved out in November, left the place cleaner than I found it. Got a letter saying they kept everything for cleaning and repainting. No itemized list.",
     topic: "Deposits",
     votes: 18,
     ts: Date.now() - 86400000 * 10,
     replies: [
       {
-        text: "Under RIGL 34-18-19, your landlord must return your deposit within 20 days of vacating with an itemized written list of deductions. Normal wear and tear — including painting — cannot be deducted. Send a certified demand letter. If they don't respond in 10 days, you can sue in small claims court for double the deposit amount plus attorney fees.",
+        text: "Under RIGL 34-18-19, your landlord must return your deposit within 20 days of vacating with an itemized written list of deductions. Normal wear and tear â€” including painting â€” cannot be deducted. Send a certified demand letter. If they don't respond in 10 days, you can sue in small claims court for double the deposit amount plus attorney fees.",
         isAI: true,
         ts: Date.now() - 86400000 * 10 + 300000,
       },
@@ -94,7 +229,7 @@ const SEED = [
     type: "roommate",
     name: "RemoteDevPVD",
     zip: "02903",
-    title: "Co-applicant wanted for Downtown 2BR — up to $1,300/mo",
+    title: "Co-applicant wanted for Downtown 2BR â€” up to $1,300/mo",
     body: "Software dev working from home. Have a small dog (15lb, very chill). Looking for someone social but fine with daytime calls. Hoping to find a place March/April.",
     budget: 1300,
     movein: "2026-03",
@@ -110,14 +245,14 @@ const SEED = [
     type: "tenant",
     name: "Anonymous",
     zip: "02909",
-    title: "No heat for 3 days, landlord not responding — what can I do?",
-    body: "Radiators stopped working Tuesday. Texted landlord twice, no answer. It's been below 30°F at night. I have a toddler.",
+    title: "No heat for 3 days, landlord not responding â€” what can I do?",
+    body: "Radiators stopped working Tuesday. Texted landlord twice, no answer. It's been below 30Â°F at night. I have a toddler.",
     topic: "Heat",
     votes: 31,
     ts: Date.now() - 86400000 * 3,
     replies: [
       {
-        text: "RI law requires landlords to maintain heat capable of 68°F (6am–11pm) and 65°F at night, September through June. After 3 days with no response you have three options: (1) repair-and-deduct — hire someone, keep receipts, deduct from rent, (2) escrow your rent with the court until fixed, or (3) terminate the lease without penalty. Call Providence Code Enforcement at (401) 680-5327 and document everything with timestamped photos. With a toddler in the home this rises to an emergency — they must respond faster.",
+        text: "RI law requires landlords to maintain heat capable of 68Â°F (6amâ€“11pm) and 65Â°F at night, September through June. After 3 days with no response you have three options: (1) repair-and-deduct â€” hire someone, keep receipts, deduct from rent, (2) escrow your rent with the court until fixed, or (3) terminate the lease without penalty. Call Providence Code Enforcement at (401) 680-5327 and document everything with timestamped photos. With a toddler in the home this rises to an emergency â€” they must respond faster.",
         isAI: true,
         ts: Date.now() - 86400000 * 3 + 180000,
       },
@@ -128,7 +263,7 @@ const SEED = [
     type: "roommate",
     name: "NurseNightShift",
     zip: "02912",
-    title: "Seeking quiet roommate near Miriam Hospital — $1,100/mo",
+    title: "Seeking quiet roommate near Miriam Hospital â€” $1,100/mo",
     body: "RN at Miriam, work nights so I sleep days. Need someone who respects sleep schedules. Super clean, keep to myself. Open to splitting a 2BR.",
     budget: 1100,
     movein: "2026-04",
@@ -144,7 +279,7 @@ const SEED = [
     type: "tenant",
     name: "Anonymous",
     zip: "02912",
-    title: "Landlord entering my apartment without notice — is this legal?",
+    title: "Landlord entering my apartment without notice â€” is this legal?",
     body: "Found things moved around twice this week while I was at work. Nothing in my lease about entry. What can I do?",
     topic: "Entry",
     votes: 12,
@@ -159,20 +294,21 @@ const SEED = [
   },
 ];
 
-// ── STATE ────────────────────────────────────────────────────────
+// ---- STATE -----------------------------------------------------------------
 let currentFilter = "all";
 let expandedPosts = new Set();
 let selectedLS = [];
 
-// ── STORAGE (Supabase or localStorage fallback) ───────────────────
+// ---- STORAGE (Supabase or localStorage fallback) ---------------------------
 async function loadPosts() {
-  if (supabase) {
+  if (supabaseClient) {
+    if (!isSignedIn()) return [];
     try {
-      const { data: rows, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
+      const { data: rows, error } = await supabaseClient.from("posts").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       if (!rows?.length) return [];
       const postIds = rows.map((r) => r.id);
-      const { data: replyRows } = await supabase.from("replies").select("*").in("post_id", postIds).order("created_at", { ascending: true });
+      const { data: replyRows } = await supabaseClient.from("replies").select("*").in("post_id", postIds).order("created_at", { ascending: true });
       const repliesByPost = {};
       (replyRows || []).forEach((r) => {
         if (!repliesByPost[r.post_id]) repliesByPost[r.post_id] = [];
@@ -180,7 +316,7 @@ async function loadPosts() {
       });
       return rows.map((r) => dbToPost(r, repliesByPost[r.id] || []));
     } catch {
-      return loadPostsLocal();
+      return [];
     }
   }
   return loadPostsLocal();
@@ -196,15 +332,18 @@ async function loadPostsLocal() {
 }
 
 async function loadVotes() {
-  if (supabase) {
+  if (supabaseClient) {
+    if (!isSignedIn()) return {};
     try {
       const vid = getVoterId();
-      const { data: rows } = await supabase.from("votes").select("post_id, direction").eq("voter_fingerprint", vid);
+      const { data: rows } = await supabaseClient.from("votes").select("post_id, direction").eq("voter_fingerprint", vid);
       const out = {};
-      (rows || []).forEach((r) => { out[r.post_id] = r.direction === 1 ? "up" : "down"; });
+      (rows || []).forEach((r) => {
+        out[r.post_id] = r.direction === 1 ? "up" : "down";
+      });
       return out;
     } catch {
-      return loadVotesLocal();
+      return {};
     }
   }
   return loadVotesLocal();
@@ -219,10 +358,15 @@ async function loadVotesLocal() {
   }
 }
 
-// ── RENDER ───────────────────────────────────────────────────────
+// ---- RENDER ----------------------------------------------------------------
 async function render() {
   const feed = document.getElementById("feed");
   if (!feed) return;
+
+  if (supabaseClient && !isSignedIn()) {
+    feed.innerHTML = `<div class="empty">Sign in to view and use the Tenant Board.</div>`;
+    return;
+  }
 
   const posts = await loadPosts();
   const votes = await loadVotes();
@@ -233,7 +377,7 @@ async function render() {
   else if (currentFilter.startsWith("0")) filtered = posts.filter((p) => p.zip === currentFilter);
 
   if (!filtered.length) {
-    feed.innerHTML = `<div class="empty">No posts here yet — be the first!</div>`;
+    feed.innerHTML = `<div class="empty">No posts here yet â€” be the first!</div>`;
     return;
   }
 
@@ -273,7 +417,7 @@ function postHTML(p, userVote) {
             <div class="reply-text">${esc(r.text)}</div>
             <div class="reply-meta">
               ${r.isAI ? '<span class="ai-label">RI LAW AI</span>' : "Community"}
-              · ${timeAgo(r.ts)}
+              Â· ${timeAgo(r.ts)}
             </div>
           </div>
         </div>`
@@ -290,7 +434,7 @@ function postHTML(p, userVote) {
         <div class="reply-compose">
           <input class="reply-input" id="reply-${p.id}" placeholder="Add your answer anonymously..."/>
           <button class="reply-submit" onclick="submitReply('${p.id}')">Post</button>
-          <button class="ai-answer-btn" id="ai-btn-${p.id}" onclick="getAI('${p.id}')">⚡ Ask AI</button>
+          <button class="ai-answer-btn" id="ai-btn-${p.id}" onclick="getAI('${p.id}')">âš¡ Ask AI</button>
         </div>`
       }
     </div>`
@@ -302,19 +446,19 @@ function postHTML(p, userVote) {
     <div class="post-main">
       <div class="post-meta">
         <span class="post-type-badge ${p.type === "roommate" ? "badge-roommate" : "badge-tenant"}">
-          ${p.type === "roommate" ? "🏠 Roommate" : "💬 Q&A"}
+          ${p.type === "roommate" ? "ðŸ  Roommate" : "ðŸ’¬ Q&A"}
         </span>
         <span class="post-author">${esc(p.name)}</span>
         <span class="post-time">${timeAgo(p.ts)}</span>
       </div>
       <div class="post-title" onclick="toggleExpand('${p.id}')">${esc(p.title)}</div>
-      ${p.body ? `<div class="post-body">${esc(isExpanded ? p.body : p.body.slice(0, 140) + (p.body.length > 140 ? "…" : ""))}</div>` : ""}
+      ${p.body ? `<div class="post-body">${esc(isExpanded ? p.body : p.body.slice(0, 140) + (p.body.length > 140 ? "â€¦" : ""))}</div>` : ""}
       ${metaRow}
       <div class="post-footer">
         <div class="vote-group">
-          <button class="vote-btn ${userVote === "up" ? "voted-up" : ""}" onclick="vote('${p.id}','up')">▲</button>
+          <button class="vote-btn ${userVote === "up" ? "voted-up" : ""}" onclick="vote('${p.id}','up')">â–²</button>
           <span class="vote-count">${p.votes}</span>
-          <button class="vote-btn ${userVote === "down" ? "voted-down" : ""}" onclick="vote('${p.id}','down')">▼</button>
+          <button class="vote-btn ${userVote === "down" ? "voted-down" : ""}" onclick="vote('${p.id}','down')">â–¼</button>
         </div>
         <button class="reply-btn" onclick="toggleExpand('${p.id}')">
           ${isExpanded ? "Hide" : "View"} replies
@@ -327,28 +471,33 @@ function postHTML(p, userVote) {
   </div>`;
 }
 
-// ── INTERACTIONS ─────────────────────────────────────────────────
+// ---- INTERACTIONS ----------------------------------------------------------
 function toggleExpand(id) {
   expandedPosts.has(id) ? expandedPosts.delete(id) : expandedPosts.add(id);
   render();
 }
 
 async function vote(id, dir) {
+  if (supabaseClient && !requireAuth("vote")) return;
+
   const vid = getVoterId();
   const direction = dir === "up" ? 1 : -1;
 
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { data: existing } = await supabase.from("votes").select("direction").eq("post_id", id).eq("voter_fingerprint", vid).single();
+      const { data: existing } = await supabaseClient.from("votes").select("direction").eq("post_id", id).eq("voter_fingerprint", vid).single();
       const prev = existing?.direction;
       if (prev === direction) {
-        await supabase.from("votes").delete().eq("post_id", id).eq("voter_fingerprint", vid);
+        await supabaseClient.from("votes").delete().eq("post_id", id).eq("voter_fingerprint", vid);
       } else {
-        await supabase.from("votes").upsert({ post_id: id, voter_fingerprint: vid, direction }, { onConflict: "post_id,voter_fingerprint" });
+        await supabaseClient.from("votes").upsert({ post_id: id, voter_fingerprint: vid, direction }, { onConflict: "post_id,voter_fingerprint" });
       }
       render();
       return;
-    } catch {}
+    } catch {
+      showAuthMsg("Vote failed. Please try again.", true);
+      return;
+    }
   }
 
   const posts = await loadPostsLocal();
@@ -370,18 +519,23 @@ async function vote(id, dir) {
 }
 
 async function submitReply(id) {
+  if (supabaseClient && !requireAuth("reply")) return;
+
   const input = document.getElementById(`reply-${id}`);
   const text = input?.value?.trim();
   if (!text) return;
 
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      await supabase.from("replies").insert({ post_id: id, text, is_ai: false });
+      await supabaseClient.from("replies").insert({ post_id: id, text, is_ai: false });
       if (input) input.value = "";
       expandedPosts.add(id);
       render();
       return;
-    } catch {}
+    } catch {
+      showAuthMsg("Reply failed. Please try again.", true);
+      return;
+    }
   }
 
   const posts = await loadPostsLocal();
@@ -396,9 +550,11 @@ async function submitReply(id) {
 }
 
 async function getAI(id) {
+  if (supabaseClient && !requireAuth("ask AI")) return;
+
   const btn = document.getElementById(`ai-btn-${id}`);
   if (btn) {
-    btn.textContent = "⚡ Thinking...";
+    btn.textContent = "âš¡ Thinking...";
     btn.disabled = true;
   }
   const posts = await loadPosts();
@@ -418,8 +574,8 @@ async function getAI(id) {
     const data = await res.json();
     const text = data.answer || "Unable to generate answer.";
 
-    if (supabase) {
-      await supabase.from("replies").insert({ post_id: id, text, is_ai: true });
+    if (supabaseClient) {
+      await supabaseClient.from("replies").insert({ post_id: id, text, is_ai: true });
     } else {
       const localPosts = await loadPostsLocal();
       const lp = localPosts.find((x) => x.id === id);
@@ -435,7 +591,7 @@ async function getAI(id) {
     alert("AI unavailable right now. Community answers still work!");
   }
   if (btn) {
-    btn.textContent = "⚡ Ask AI";
+    btn.textContent = "âš¡ Ask AI";
     btn.disabled = false;
   }
 }
@@ -444,7 +600,7 @@ function showContact(contact, name) {
   alert(`Contact for ${name}:\n\n${contact || "No contact info provided."}`);
 }
 
-// ── FILTERS ──────────────────────────────────────────────────────
+// ---- FILTERS ---------------------------------------------------------------
 function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll(".filter-btn").forEach((b) => {
@@ -457,8 +613,10 @@ function setFilter(f, btn) {
   render();
 }
 
-// ── SUBMIT ROOMMATE ───────────────────────────────────────────────
+// ---- SUBMIT ROOMMATE -------------------------------------------------------
 async function submitRoommate() {
+  if (supabaseClient && !requireAuth("post")) return;
+
   const name = $("rm-name")?.value?.trim();
   const budget = parseInt($("rm-budget")?.value, 10);
   if (!name || !budget) {
@@ -470,7 +628,7 @@ async function submitRoommate() {
     type: "roommate",
     name,
     zip: $("rm-zip")?.value || "",
-    title: `Looking for ${($("rm-seeking")?.value || "").toLowerCase()} — $${budget}/mo budget`,
+    title: `Looking for ${($("rm-seeking")?.value || "").toLowerCase()} â€” $${budget}/mo budget`,
     body: $("rm-bio")?.value?.trim() || "",
     budget,
     movein: $("rm-movein")?.value || null,
@@ -479,19 +637,25 @@ async function submitRoommate() {
     contact: $("rm-contact")?.value?.trim() || "",
   };
 
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { data, error } = await supabase.from("posts").insert(payload).select("id").single();
+      const { data, error } = await supabaseClient.from("posts").insert(payload).select("id").single();
       if (error) throw error;
       expandedPosts.add(data.id);
       closeModal("modal-roommate");
-      ["rm-name", "rm-budget", "rm-bio", "rm-contact"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+      ["rm-name", "rm-budget", "rm-bio", "rm-contact"].forEach((id) => {
+        const el = $(id);
+        if (el) el.value = "";
+      });
       selectedLS = [];
       document.querySelectorAll(".ls-btn").forEach((b) => b.classList.remove("on"));
       currentFilter = "all";
       render();
       return;
-    } catch {}
+    } catch {
+      alert("Could not post right now.");
+      return;
+    }
   }
 
   const post = { ...payload, id: "rm-" + Date.now(), votes: 0, replies: [], ts: Date.now() };
@@ -499,15 +663,20 @@ async function submitRoommate() {
   posts.unshift(post);
   localStorage.setItem("pvd-posts", JSON.stringify(posts));
   closeModal("modal-roommate");
-  ["rm-name", "rm-budget", "rm-bio", "rm-contact"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+  ["rm-name", "rm-budget", "rm-bio", "rm-contact"].forEach((id) => {
+    const el = $(id);
+    if (el) el.value = "";
+  });
   selectedLS = [];
   document.querySelectorAll(".ls-btn").forEach((b) => b.classList.remove("on"));
   currentFilter = "all";
   render();
 }
 
-// ── SUBMIT TENANT ─────────────────────────────────────────────────
+// ---- SUBMIT TENANT ---------------------------------------------------------
 async function submitTenant() {
+  if (supabaseClient && !requireAuth("post")) return;
+
   const title = $("qa-title")?.value?.trim();
   if (!title) {
     alert("Please enter a question.");
@@ -525,18 +694,24 @@ async function submitTenant() {
 
   let postId;
 
-  if (supabase) {
+  if (supabaseClient) {
     try {
-      const { data, error } = await supabase.from("posts").insert(payload).select("id").single();
+      const { data, error } = await supabaseClient.from("posts").insert(payload).select("id").single();
       if (error) throw error;
       postId = data.id;
       closeModal("modal-tenant");
-      ["qa-title", "qa-body"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+      ["qa-title", "qa-body"].forEach((id) => {
+        const el = $(id);
+        if (el) el.value = "";
+      });
       expandedPosts.add(postId);
       render();
       setTimeout(() => getAI(postId), 600);
       return;
-    } catch {}
+    } catch {
+      alert("Could not post right now.");
+      return;
+    }
   }
 
   const post = { ...payload, id: "qa-" + Date.now(), votes: 0, replies: [], ts: Date.now() };
@@ -544,30 +719,35 @@ async function submitTenant() {
   posts.unshift(post);
   localStorage.setItem("pvd-posts", JSON.stringify(posts));
   closeModal("modal-tenant");
-  ["qa-title", "qa-body"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+  ["qa-title", "qa-body"].forEach((id) => {
+    const el = $(id);
+    if (el) el.value = "";
+  });
   expandedPosts.add(post.id);
   render();
   setTimeout(() => getAI(post.id), 600);
 }
 
-// ── LIFESTYLE TOGGLE ──────────────────────────────────────────────
+// ---- LIFESTYLE TOGGLE ------------------------------------------------------
 function toggleLS(btn) {
   const val = btn.dataset.val;
   btn.classList.toggle("on");
   selectedLS = btn.classList.contains("on") ? [...selectedLS, val] : selectedLS.filter((v) => v !== val);
 }
 
-// ── MODALS ────────────────────────────────────────────────────────
+// ---- MODALS ----------------------------------------------------------------
 function openModal(id) {
+  if (supabaseClient && !requireAuth("post")) return;
   const el = document.getElementById(id);
   if (el) el.classList.add("open");
 }
+
 function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove("open");
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────
+// ---- HELPERS ---------------------------------------------------------------
 function timeAgo(ts) {
   const d = Math.floor((Date.now() - ts) / 86400000);
   const h = Math.floor((Date.now() - ts) / 3600000);
@@ -577,6 +757,7 @@ function timeAgo(ts) {
   if (m > 0) return `${m}m ago`;
   return "just now";
 }
+
 function esc(s) {
   return String(s || "")
     .replace(/&/g, "&amp;")
@@ -585,17 +766,14 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
-// ── ZIP POPULATION (from backend) ──────────────────────────────────
+// ---- ZIP POPULATION (from backend) -----------------------------------------
 async function populateZips() {
   try {
     const res = await fetch("/zips");
     const zips = await res.json();
     const rmZip = $("rm-zip");
     const qaZip = $("qa-zip");
-    const opts = zips.map(
-      (z) =>
-        `<option value="${z.zip}">${z.zip}${z.neighborhood ? " — " + z.neighborhood : ""}</option>`
-    );
+    const opts = zips.map((z) => `<option value="${z.zip}">${z.zip}${z.neighborhood ? " â€” " + z.neighborhood : ""}</option>`);
     if (rmZip) {
       const current = rmZip.value;
       rmZip.innerHTML = opts.join("");
@@ -607,14 +785,33 @@ async function populateZips() {
   } catch {}
 }
 
-// ── INIT ──────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", async () => {
+// ---- INIT ------------------------------------------------------------------
+async function initBoardPage() {
   document.querySelectorAll(".overlay").forEach((o) => {
     o.addEventListener("click", (e) => {
       if (e.target === o) o.classList.remove("open");
     });
   });
+
+  $("btn-signin")?.addEventListener("click", signIn);
+  $("btn-signup")?.addEventListener("click", signUp);
+  $("btn-signout")?.addEventListener("click", signOut);
+
+  $("auth-password")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") signIn();
+  });
+
   await initSupabase();
+  setAuthUI();
   await populateZips();
-  render();
-});
+
+  if (!supabaseClient || isSignedIn()) {
+    render();
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initBoardPage);
+} else {
+  initBoardPage();
+}

@@ -15,6 +15,8 @@
   <div class="header-sub">Providence · Anonymous · Open</div>
   <a href="/" class="header-home">← Home</a>
   <div class="header-actions">
+    <span class="header-user" id="auth-user">Not signed in</span>
+    <button class="btn-post btn-auth" id="btn-signout" style="display:none;">Sign Out</button>
     <button class="btn-post btn-roommate" onclick="openModal('modal-roommate')">🏠 Find Roommate</button>
     <button class="btn-post btn-tenant" onclick="openModal('modal-tenant')">💬 Post Question</button>
   </div>
@@ -22,19 +24,35 @@
 
 <!-- FEED -->
 <div class="layout">
-  <div class="filters">
-    <span class="filter-label">Show:</span>
-    <button class="filter-btn active-all" onclick="setFilter('all', this)">All Posts</button>
-    <button class="filter-btn" onclick="setFilter('roommate', this)">🏠 Roommates</button>
-    <button class="filter-btn" onclick="setFilter('tenant', this)">💬 Q&amp;A</button>
-    <button class="filter-btn" onclick="setFilter('02906', this)">02906</button>
-    <button class="filter-btn" onclick="setFilter('02912', this)">02912</button>
-    <button class="filter-btn" onclick="setFilter('02903', this)">02903</button>
-    <button class="filter-btn" onclick="setFilter('02909', this)">02909</button>
-    <button class="filter-btn" onclick="setFilter('02907', this)">02907</button>
+  <div class="auth-gate" id="auth-gate">
+    <div class="auth-title">Sign in required</div>
+    <div class="auth-subtitle">Create an account or sign in to view and post on the Tenant Board.</div>
+    <div class="auth-row">
+      <input class="input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email"/>
+      <input class="input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password"/>
+    </div>
+    <div class="auth-actions">
+      <button class="submit-btn submit-tenant" id="btn-signin" onclick="signIn()">Sign In</button>
+      <button class="submit-btn submit-roommate" id="btn-signup" onclick="signUp()">Create Account</button>
+    </div>
+    <div class="form-note" id="auth-msg" style="display:none;"></div>
   </div>
 
-  <div id="feed"><div class="empty pulsing">Loading board...</div></div>
+  <div id="board-content" style="display:none;">
+    <div class="filters">
+      <span class="filter-label">Show:</span>
+      <button class="filter-btn active-all" onclick="setFilter('all', this)">All Posts</button>
+      <button class="filter-btn" onclick="setFilter('roommate', this)">🏠 Roommates</button>
+      <button class="filter-btn" onclick="setFilter('tenant', this)">💬 Q&amp;A</button>
+      <button class="filter-btn" onclick="setFilter('02906', this)">02906</button>
+      <button class="filter-btn" onclick="setFilter('02912', this)">02912</button>
+      <button class="filter-btn" onclick="setFilter('02903', this)">02903</button>
+      <button class="filter-btn" onclick="setFilter('02909', this)">02909</button>
+      <button class="filter-btn" onclick="setFilter('02907', this)">02907</button>
+    </div>
+
+    <div id="feed"><div class="empty pulsing">Loading board...</div></div>
+  </div>
 </div>
 
 <!-- ROOMMATE MODAL -->
