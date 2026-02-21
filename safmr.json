@@ -1,0 +1,12 @@
+{
+  "02903": {"neighborhood": "Downtown", "studio": 1730, "1br": 1860, "2br": 2270, "3br": 2730},
+  "02906": {"neighborhood": "East Side / College Hill", "studio": 1630, "1br": 1750, "2br": 2140, "3br": 2580},
+  "02912": {"neighborhood": "Brown University Area", "studio": 1640, "1br": 1760, "2br": 2150, "3br": 2590},
+  "02908": {"neighborhood": "Manton / Smith Hill", "studio": 1220, "1br": 1310, "2br": 1600, "3br": 1930},
+  "02909": {"neighborhood": "West End / Olneyville", "studio": 1170, "1br": 1260, "2br": 1530, "3br": 1850},
+  "02907": {"neighborhood": "South Providence", "studio": 1170, "1br": 1260, "2br": 1530, "3br": 1850},
+  "02904": {"neighborhood": "North Providence Border", "studio": 1230, "1br": 1320, "2br": 1610, "3br": 1940},
+  "02905": {"neighborhood": "Elmwood", "studio": 1240, "1br": 1320, "2br": 1620, "3br": 1950},
+  "02910": {"neighborhood": "Cranston Border", "studio": 1280, "1br": 1370, "2br": 1680, "3br": 2020},
+  "02911": {"neighborhood": "North Providence", "studio": 1340, "1br": 1440, "2br": 1760, "3br": 2120}
+}
