@@ -12,6 +12,16 @@ DATA_PATH = os.path.join(PY_DIR, "data", "safmr.json")
 with open(DATA_PATH, "r", encoding="utf-8") as f:
     SAFMR = json.load(f)
 
+# Optional Zillow metro data (RI) — provide a recent market signal if available
+try:
+    from python.services.zillow_loader import get_metro_latest
+except Exception:
+    get_metro_latest = lambda _: None
+try:
+    from python.services.zillow_loader import load_national_zori_latest
+except Exception:
+    load_national_zori_latest = lambda: None
+
 AMENITY_ADJUSTMENTS = {
     "parking": 100,
     "in_unit_laundry": 90,
@@ -65,7 +75,7 @@ def estimate_fair_rent(zip_code: str, bedrooms: str, amenities: List[str], sqft:
 
     fair_rent = base + adjustments + sqft_delta
 
-    return {
+    result = {
         "zip_code": zip_code,
         "neighborhood": neighborhood,
         "base_safmr": base,
@@ -75,7 +85,28 @@ def estimate_fair_rent(zip_code: str, bedrooms: str, amenities: List[str], sqft:
         "fair_rent_mid": round(fair_rent),
         "fair_rent_high": round(fair_rent * 1.07),
         "data_source": "HUD FY2025 Small Area Fair Market Rents",
+        # Zillow metro data is metro-level (Providence); attempt to fetch by metro name
+        "zillow_metro_value": get_metro_latest("Providence") if callable(get_metro_latest) else None,
+        # national ZORI/ZORF growth value (if available)
+        "zori_national_value": load_national_zori_latest() if callable(load_national_zori_latest) else None,
     }
+
+    # Conservative ZORI-based adjustment: apply half of national ZORI percent to SAFMR base
+    zori_val = result.get("zori_national_value")
+    if isinstance(zori_val, (int, float)):
+        # treat as percent change if magnitude looks like a percent
+        try:
+            adj_pct = float(zori_val)
+            zori_adj = round(base * (adj_pct / 100.0) * 0.5)
+            result["zori_adjustment"] = zori_adj
+            # update mid/low/high
+            result["fair_rent_mid"] = round(result["fair_rent_mid"] + zori_adj)
+            result["fair_rent_low"] = round(result["fair_rent_mid"] * 0.93)
+            result["fair_rent_high"] = round(result["fair_rent_mid"] * 1.07)
+        except Exception:
+            pass
+
+    return result
 
 def get_price_flag(asking_rent: float, fair_rent_mid: float):
     if fair_rent_mid == 0:

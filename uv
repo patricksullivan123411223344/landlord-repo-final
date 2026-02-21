@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# uv - forward args to uvicorn via the configured Python executable
+PYTHON="C:/Users/ddper/AppData/Local/Python/pythoncore-3.14-64/python.exe"
+if [ -x "$PYTHON" ]; then
+  exec "$PYTHON" -m uvicorn "$@"
+else
+  exec python -m uvicorn "$@"
+fi
