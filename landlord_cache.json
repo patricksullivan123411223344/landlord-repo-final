@@ -1,0 +1,69 @@
+{
+  "196 BROADWAY ST": {
+    "owner_name": "Broadway Holdings LLC",
+    "is_llc": true,
+    "non_resident": true,
+    "year_built": 1924,
+    "total_properties": 23,
+    "recent_permits": 0,
+    "permit_details": [],
+    "score": 35,
+    "grade": "F",
+    "notes": [
+      "Owned by LLC — reduced owner transparency",
+      "Non-resident landlord registered with RI SOS",
+      "Large portfolio: 23 properties statewide",
+      "No permits pulled since 2019",
+      "Pre-1980 building with no recent renovation permits"
+    ]
+  },
+  "45 PROSPECT ST": {
+    "owner_name": "Margaret Chen",
+    "is_llc": false,
+    "non_resident": false,
+    "year_built": 1987,
+    "total_properties": 2,
+    "recent_permits": 4,
+    "permit_details": ["2022 - Electrical upgrade", "2021 - HVAC replacement", "2020 - Roof repair", "2019 - Plumbing"],
+    "score": 92,
+    "grade": "A",
+    "notes": [
+      "Small portfolio owner — 2 properties",
+      "Active permit history — well maintained",
+      "Resident landlord"
+    ]
+  },
+  "310 SMITH ST": {
+    "owner_name": "Providence Properties Group LLC",
+    "is_llc": true,
+    "non_resident": false,
+    "year_built": 1961,
+    "total_properties": 11,
+    "recent_permits": 1,
+    "permit_details": ["2020 - Exterior repair"],
+    "score": 58,
+    "grade": "C",
+    "notes": [
+      "Owned by LLC — reduced owner transparency",
+      "Medium portfolio: 11 properties",
+      "Minimal permit activity for building age"
+    ]
+  },
+  "88 WATERMAN ST": {
+    "owner_name": "East Side Rentals LLC",
+    "is_llc": true,
+    "non_resident": true,
+    "year_built": 1910,
+    "total_properties": 8,
+    "recent_permits": 0,
+    "permit_details": [],
+    "score": 42,
+    "grade": "D",
+    "notes": [
+      "Owned by LLC — reduced owner transparency",
+      "Non-resident landlord registered with RI SOS",
+      "No permits pulled since 2019",
+      "Pre-1980 building with no recent renovation permits"
+    ]
+  }
+}
