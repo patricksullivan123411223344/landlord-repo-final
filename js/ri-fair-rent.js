@@ -1,9 +1,52 @@
 /**
  * ri-fair-rent.js — PVD Tenant Board
- * Wired to app backend: /zips, /api/ai-answer
+ * Uses Supabase for forum data when configured; falls back to localStorage.
+ * Wired to app backend: /zips, /api/ai-answer, /api/board-config
  */
 
 const $ = (id) => document.getElementById(id);
+
+// ── SUPABASE ──────────────────────────────────────────────────────
+let supabase = null;
+
+async function initSupabase() {
+  try {
+    const res = await fetch("/api/board-config");
+    const cfg = await res.json();
+    if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase?.createClient) {
+      supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    }
+  } catch {}
+}
+
+function getVoterId() {
+  let id = localStorage.getItem("pvd-voter-id");
+  if (!id) {
+    id = "v_" + Math.random().toString(36).slice(2) + "_" + Date.now();
+    localStorage.setItem("pvd-voter-id", id);
+  }
+  return id;
+}
+
+function dbToPost(row, replies = []) {
+  return {
+    id: row.id,
+    type: row.type,
+    name: row.name || "Anonymous",
+    zip: row.zip || "",
+    title: row.title,
+    body: row.body || "",
+    topic: row.topic || "",
+    budget: row.budget,
+    movein: row.movein,
+    seeking: row.seeking,
+    lifestyle: row.lifestyle || [],
+    contact: row.contact || "",
+    votes: row.vote_count ?? 0,
+    ts: new Date(row.created_at).getTime(),
+    replies: replies.map((r) => ({ text: r.text, isAI: r.is_ai, ts: new Date(r.created_at).getTime() })),
+  };
+}
 
 // ── SEED DATA ────────────────────────────────────────────────────
 const SEED = [
@@ -121,32 +164,59 @@ let currentFilter = "all";
 let expandedPosts = new Set();
 let selectedLS = [];
 
-// ── STORAGE ──────────────────────────────────────────────────────
-async function load(key, fallback) {
-  try {
-    if (window.storage?.get) {
-      const r = await window.storage.get(key, true);
-      return JSON.parse(r.value);
+// ── STORAGE (Supabase or localStorage fallback) ───────────────────
+async function loadPosts() {
+  if (supabase) {
+    try {
+      const { data: rows, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!rows?.length) return [];
+      const postIds = rows.map((r) => r.id);
+      const { data: replyRows } = await supabase.from("replies").select("*").in("post_id", postIds).order("created_at", { ascending: true });
+      const repliesByPost = {};
+      (replyRows || []).forEach((r) => {
+        if (!repliesByPost[r.post_id]) repliesByPost[r.post_id] = [];
+        repliesByPost[r.post_id].push(r);
+      });
+      return rows.map((r) => dbToPost(r, repliesByPost[r.id] || []));
+    } catch {
+      return loadPostsLocal();
     }
-  } catch {}
+  }
+  return loadPostsLocal();
+}
+
+async function loadPostsLocal() {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
+    const raw = localStorage.getItem("pvd-posts");
+    return raw ? JSON.parse(raw) : SEED;
   } catch {
-    return fallback;
+    return SEED;
   }
 }
 
-async function save(key, data) {
-  try {
-    if (window.storage?.set) {
-      await window.storage.set(key, JSON.stringify(data), true);
-      return;
+async function loadVotes() {
+  if (supabase) {
+    try {
+      const vid = getVoterId();
+      const { data: rows } = await supabase.from("votes").select("post_id, direction").eq("voter_fingerprint", vid);
+      const out = {};
+      (rows || []).forEach((r) => { out[r.post_id] = r.direction === 1 ? "up" : "down"; });
+      return out;
+    } catch {
+      return loadVotesLocal();
     }
-  } catch {}
+  }
+  return loadVotesLocal();
+}
+
+async function loadVotesLocal() {
   try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch {}
+    const raw = localStorage.getItem("pvd-votes");
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
 }
 
 // ── RENDER ───────────────────────────────────────────────────────
@@ -154,8 +224,8 @@ async function render() {
   const feed = document.getElementById("feed");
   if (!feed) return;
 
-  const posts = await load("pvd-posts", SEED);
-  const votes = await load("pvd-votes", {});
+  const posts = await loadPosts();
+  const votes = await loadVotes();
 
   let filtered = posts;
   if (currentFilter === "roommate") filtered = posts.filter((p) => p.type === "roommate");
@@ -264,8 +334,25 @@ function toggleExpand(id) {
 }
 
 async function vote(id, dir) {
-  const posts = await load("pvd-posts", SEED);
-  const votes = await load("pvd-votes", {});
+  const vid = getVoterId();
+  const direction = dir === "up" ? 1 : -1;
+
+  if (supabase) {
+    try {
+      const { data: existing } = await supabase.from("votes").select("direction").eq("post_id", id).eq("voter_fingerprint", vid).single();
+      const prev = existing?.direction;
+      if (prev === direction) {
+        await supabase.from("votes").delete().eq("post_id", id).eq("voter_fingerprint", vid);
+      } else {
+        await supabase.from("votes").upsert({ post_id: id, voter_fingerprint: vid, direction }, { onConflict: "post_id,voter_fingerprint" });
+      }
+      render();
+      return;
+    } catch {}
+  }
+
+  const posts = await loadPostsLocal();
+  const votes = await loadVotesLocal();
   const p = posts.find((x) => x.id === id);
   if (!p) return;
   const prev = votes[id];
@@ -277,8 +364,8 @@ async function vote(id, dir) {
     votes[id] = dir;
     p.votes += dir === "up" ? 1 : -1;
   }
-  await save("pvd-posts", posts);
-  await save("pvd-votes", votes);
+  localStorage.setItem("pvd-posts", JSON.stringify(posts));
+  localStorage.setItem("pvd-votes", JSON.stringify(votes));
   render();
 }
 
@@ -286,12 +373,24 @@ async function submitReply(id) {
   const input = document.getElementById(`reply-${id}`);
   const text = input?.value?.trim();
   if (!text) return;
-  const posts = await load("pvd-posts", SEED);
+
+  if (supabase) {
+    try {
+      await supabase.from("replies").insert({ post_id: id, text, is_ai: false });
+      if (input) input.value = "";
+      expandedPosts.add(id);
+      render();
+      return;
+    } catch {}
+  }
+
+  const posts = await loadPostsLocal();
   const p = posts.find((x) => x.id === id);
   if (!p) return;
   p.replies = p.replies || [];
   p.replies.push({ text, isAI: false, ts: Date.now() });
-  await save("pvd-posts", posts);
+  localStorage.setItem("pvd-posts", JSON.stringify(posts));
+  if (input) input.value = "";
   expandedPosts.add(id);
   render();
 }
@@ -302,7 +401,7 @@ async function getAI(id) {
     btn.textContent = "⚡ Thinking...";
     btn.disabled = true;
   }
-  const posts = await load("pvd-posts", SEED);
+  const posts = await loadPosts();
   const p = posts.find((x) => x.id === id);
   if (!p) return;
   try {
@@ -318,17 +417,26 @@ async function getAI(id) {
     if (!res.ok) throw new Error("AI unavailable");
     const data = await res.json();
     const text = data.answer || "Unable to generate answer.";
-    p.replies = p.replies || [];
-    p.replies.push({ text, isAI: true, ts: Date.now() });
-    await save("pvd-posts", posts);
+
+    if (supabase) {
+      await supabase.from("replies").insert({ post_id: id, text, is_ai: true });
+    } else {
+      const localPosts = await loadPostsLocal();
+      const lp = localPosts.find((x) => x.id === id);
+      if (lp) {
+        lp.replies = lp.replies || [];
+        lp.replies.push({ text, isAI: true, ts: Date.now() });
+        localStorage.setItem("pvd-posts", JSON.stringify(localPosts));
+      }
+    }
     expandedPosts.add(id);
     render();
   } catch {
     alert("AI unavailable right now. Community answers still work!");
-    if (btn) {
-      btn.textContent = "⚡ Ask AI";
-      btn.disabled = false;
-    }
+  }
+  if (btn) {
+    btn.textContent = "⚡ Ask AI";
+    btn.disabled = false;
   }
 }
 
@@ -358,32 +466,40 @@ async function submitRoommate() {
     return;
   }
 
-  const post = {
-    id: "rm-" + Date.now(),
+  const payload = {
     type: "roommate",
     name,
-    zip: $("rm-zip")?.value,
+    zip: $("rm-zip")?.value || "",
     title: `Looking for ${($("rm-seeking")?.value || "").toLowerCase()} — $${budget}/mo budget`,
     body: $("rm-bio")?.value?.trim() || "",
     budget,
-    movein: $("rm-movein")?.value,
-    seeking: $("rm-seeking")?.value,
+    movein: $("rm-movein")?.value || null,
+    seeking: $("rm-seeking")?.value || null,
     lifestyle: [...selectedLS],
     contact: $("rm-contact")?.value?.trim() || "",
-    votes: 0,
-    replies: [],
-    ts: Date.now(),
   };
 
-  const posts = await load("pvd-posts", SEED);
-  posts.unshift(post);
-  await save("pvd-posts", posts);
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from("posts").insert(payload).select("id").single();
+      if (error) throw error;
+      expandedPosts.add(data.id);
+      closeModal("modal-roommate");
+      ["rm-name", "rm-budget", "rm-bio", "rm-contact"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+      selectedLS = [];
+      document.querySelectorAll(".ls-btn").forEach((b) => b.classList.remove("on"));
+      currentFilter = "all";
+      render();
+      return;
+    } catch {}
+  }
 
+  const post = { ...payload, id: "rm-" + Date.now(), votes: 0, replies: [], ts: Date.now() };
+  const posts = await loadPostsLocal();
+  posts.unshift(post);
+  localStorage.setItem("pvd-posts", JSON.stringify(posts));
   closeModal("modal-roommate");
-  ["rm-name", "rm-budget", "rm-bio", "rm-contact"].forEach((id) => {
-    const el = $(id);
-    if (el) el.value = "";
-  });
+  ["rm-name", "rm-budget", "rm-bio", "rm-contact"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
   selectedLS = [];
   document.querySelectorAll(".ls-btn").forEach((b) => b.classList.remove("on"));
   currentFilter = "all";
@@ -398,29 +514,37 @@ async function submitTenant() {
     return;
   }
 
-  const post = {
-    id: "qa-" + Date.now(),
+  const payload = {
     type: "tenant",
     name: "Anonymous",
     zip: $("qa-zip")?.value || "",
     title,
     body: $("qa-body")?.value?.trim() || "",
-    topic: $("qa-topic")?.value,
-    votes: 0,
-    replies: [],
-    ts: Date.now(),
+    topic: $("qa-topic")?.value || "Other",
   };
 
-  const posts = await load("pvd-posts", SEED);
+  let postId;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from("posts").insert(payload).select("id").single();
+      if (error) throw error;
+      postId = data.id;
+      closeModal("modal-tenant");
+      ["qa-title", "qa-body"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
+      expandedPosts.add(postId);
+      render();
+      setTimeout(() => getAI(postId), 600);
+      return;
+    } catch {}
+  }
+
+  const post = { ...payload, id: "qa-" + Date.now(), votes: 0, replies: [], ts: Date.now() };
+  const posts = await loadPostsLocal();
   posts.unshift(post);
-  await save("pvd-posts", posts);
-
+  localStorage.setItem("pvd-posts", JSON.stringify(posts));
   closeModal("modal-tenant");
-  ["qa-title", "qa-body"].forEach((id) => {
-    const el = $(id);
-    if (el) el.value = "";
-  });
-
+  ["qa-title", "qa-body"].forEach((id) => { const el = $(id); if (el) el.value = ""; });
   expandedPosts.add(post.id);
   render();
   setTimeout(() => getAI(post.id), 600);
@@ -490,6 +614,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (e.target === o) o.classList.remove("open");
     });
   });
+  await initSupabase();
   await populateZips();
   render();
 });
