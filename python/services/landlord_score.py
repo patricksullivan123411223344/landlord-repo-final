@@ -1,5 +1,5 @@
 def build_landlord_profile(owner_name: str | None) -> dict:
-    if not owner+name:
+    if not owner_name:
         return {
             "owner_name": "Not found",
             "score": None,
@@ -16,14 +16,14 @@ def build_landlord_profile(owner_name: str | None) -> dict:
 
     if is_llc:
         score -= 10
-        notes.append("Owner appears to be an LLC/Coorporate entity.")
+        notes.append("Owner appears to be an LLC/Corporate entity.")
 
-        grade = "A" if score >= 85 else "B" if scpre >= 70 else "C" if score >= 55 else "D" if score >= 40 else "F"
+    grade = "A" if score >= 85 else "B" if score >= 70 else "C" if score >= 55 else "D" if score >= 40 else "F"
 
-        return {
-            "owner_name": owner_name,
-            "is_llc": is_llc,
-            "score": score,
-            "grade": grade,
-            "notes": notes
-        }
+    return {
+        "owner_name": owner_name,
+        "is_llc": is_llc,
+        "score": score,
+        "grade": grade,
+        "notes": notes,
+    }

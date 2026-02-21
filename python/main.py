@@ -9,8 +9,7 @@ What this does:
  - POST /analyze
 
 Secrets:
-- Loaded from .env via python/config.py
-- Never exposed to browser or github
+- CENSUS_API_KEY in .env for Census Bureau API (ACS housing data)
 """
 
 import os
@@ -29,6 +28,7 @@ from python.services.fair_rent import (
 )
 from python.services.openpvd import lookup_owner_openpvd
 from python.services.landlord_score import build_landlord_profile
+from python.services.census import get_acs_rent_by_zip
 
 
 # ---- Paths ----
@@ -95,9 +95,12 @@ def analyze(req: AnalyzeRequest):
         req.amenities
     )
 
-    # Landlord lookup (uses Socrata token from .env internally)
+    # Landlord lookup (Providence Open Data)
     owner = lookup_owner_openpvd(req.address)
     landlord = build_landlord_profile(owner_name=owner)
+
+    # Census ACS housing data by ZIP (uses CENSUS_API_KEY)
+    census_rent = get_acs_rent_by_zip(req.zip_code)
 
     return {
         "rent_estimate": rent,
@@ -105,6 +108,7 @@ def analyze(req: AnalyzeRequest):
         "flag": flag,
         "landlord": landlord,
         "nearby_zips": nearby,
+        "census_acs": census_rent,
     }
 
 
@@ -117,45 +121,8 @@ class AIAnswerRequest(BaseModel):
 
 @app.post("/api/ai-answer")
 async def ai_answer(req: AIAnswerRequest):
-    """Proxy to Anthropic for RI landlord-tenant law Q&A."""
-    from python.config import settings
-
-    import httpx
-
-    key = settings.anthropic_api_key
-    if not key:
-        return {"answer": "AI is not configured. Add ANTHROPIC_API_KEY to .env."}
-
-    prompt = f"""You are an expert on Rhode Island landlord-tenant law (RIGL Chapter 34-18). A Providence tenant asked this question anonymously. Give a clear, practical answer citing specific RI statutes. Be direct and helpful. Max 160 words. Speak directly to the tenant.
-
-Question: {req.title}
-{f'Details: {req.body}' if req.body else ''}
-Topic: {req.topic}"""
-
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "Content-Type": "application/json",
-                    "x-api-key": key,
-                    "anthropic-version": "2023-06-01",
-                },
-                json={
-                    "model": "claude-sonnet-4-20250514",
-                    "max_tokens": 1000,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-                timeout=60.0,
-            )
-        if r.status_code != 200:
-            return {"answer": "AI unavailable right now. Try again later."}
-
-        data = r.json()
-        text = data.get("content", [{}])[0].get("text", "Unable to generate answer.")
-        return {"answer": text}
-    except Exception:
-        return {"answer": "AI unavailable right now. Try again later."}
+    """Placeholder for RI landlord-tenant law Q&A. AI requires separate configuration."""
+    return {"answer": "AI is not configured. Add GEMINI_API_KEY or another AI provider to .env."}
 
 
 # ---- Static Mounts (after routes so API/HTML routes take precedence) ----

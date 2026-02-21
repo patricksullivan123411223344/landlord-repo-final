@@ -7,11 +7,15 @@
         <link rel="stylesheet" href="/css/index.css">
     </head>
     <body>
-        <h1>Landlord Rating</h1>
-        <p style="margin-bottom:1rem;color:#6a6560;">Find affordable housing & landlord ratings in Providence, RI</p>
-        <a href="/rating"><button>Start — Get Rating</button></a>
-        <a href="/fair-rent"><button>Tenant Board</button></a>
-        <div id="server-required" style="display:none;margin-top:2rem;padding:1rem;background:#fdf3ea;border:1px solid #f5c49a;border-radius:6px;font-size:0.9rem;max-width:400px;">
+        <main class="card">
+            <h1>Landlord Rating</h1>
+            <p class="subtitle">Find affordable housing & landlord ratings in Providence, RI</p>
+            <div class="button-grid">
+                <a href="/rating" class="btn btn-primary">Get Rating</a>
+                <a href="/fair-rent" class="btn btn-secondary">Tenant Board</a>
+            </div>
+        </main>
+        <div id="server-required" class="server-notice">
             <strong>Run the server first.</strong> From the project folder: <code>uvicorn python.main:app --reload</code><br>
             Then open <a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a>
         </div>
