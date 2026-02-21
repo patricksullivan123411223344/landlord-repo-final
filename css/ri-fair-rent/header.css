@@ -1,86 +1,25 @@
-/* ri-fair-rent header */
-.header {
-  background: var(--text);
-  color: var(--bg);
-  padding: 0 32px;
+/* ri-fair-rent header + board actions */
+.board-page {
+  max-width: 980px;
+}
+
+.board-actions {
   display: flex;
-  align-items: center;
-  gap: 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  border-bottom: 2px solid #333;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.header-brand {
-  padding: 18px 0;
-  font-family: var(--serif);
-  font-size: 22px;
-  font-style: italic;
-  letter-spacing: -0.3px;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  padding-right: 28px;
-  margin-right: 28px;
-  color: #f5f2eb;
+.board-secondary-btn {
+  background: var(--primary);
+  color: #fff;
 }
 
-.header-brand strong { font-style: normal; color: #fff; }
-
-.header-sub {
-  font-size: 11px;
-  color: rgba(245, 242, 235, 0.45);
-  letter-spacing: 2px;
-  text-transform: uppercase;
+.board-secondary-btn:hover {
+  background: #123968;
 }
 
-.header-home {
-  color: var(--bg);
-  margin-left: 12px;
-  font-size: 12px;
-  text-decoration: none;
-}
-
-.header-home:hover {
-  text-decoration: underline;
-}
-
-.header-actions { margin-left: auto; display: flex; gap: 10px; }
-
-.header-user {
-  font-size: 12px;
-  color: rgba(245, 242, 235, 0.8);
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  align-self: center;
-}
-
-.btn-post {
-  padding: 8px 18px;
-  border-radius: 4px;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--sans);
-  cursor: pointer;
-  letter-spacing: 0.3px;
-  transition: all 0.15s;
-}
-
-.btn-roommate { background: var(--roommate); color: #fff; }
-.btn-roommate:hover { background: #235c42; }
-
-.btn-tenant { background: var(--tenant); color: #fff; }
-.btn-tenant:hover { background: #6a3500; }
-
-.btn-auth { background: #333; color: #fff; }
-.btn-auth:hover { background: #444; }
-
-@media (max-width: 900px) {
-  .header { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
-  .header-brand { padding: 0; border-right: 0; margin-right: 8px; }
-  .header-sub { display: none; }
-  .header-actions { width: 100%; margin-left: 0; flex-wrap: wrap; }
-  .header-user { max-width: 100%; }
+@media (max-width: 700px) {
+  .board-actions {
+    flex-direction: column;
+  }
 }

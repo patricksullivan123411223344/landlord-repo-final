@@ -1,0 +1,166 @@
+/* Tenant Shield shared design system */
+:root {
+  --ts-primary: #0f2d52;
+  --ts-cta: #1e6bff;
+  --ts-positive: #2ed8a3;
+  --ts-warning: #ff6b6b;
+  --ts-bg: #f4f6f9;
+  --ts-surface: #ffffff;
+  --ts-text: #1a1f2b;
+  --ts-muted: #5e6677;
+  --ts-border: #d5dbe6;
+  --ts-shadow: 0 10px 30px rgba(15, 45, 82, 0.08);
+  --ts-radius-sm: 6px;
+  --ts-radius-md: 8px;
+  --ts-radius-lg: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  color: var(--ts-text);
+  background: var(--ts-bg);
+}
+
+.ts-nav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--ts-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ts-nav-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.ts-brand {
+  color: #fff;
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.ts-brand-sub {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  margin-left: -8px;
+}
+
+.ts-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 8px;
+}
+
+.ts-link {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: var(--ts-radius-sm);
+}
+
+.ts-link:hover,
+.ts-link.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.ts-auth {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ts-auth-user {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-btn {
+  border: none;
+  border-radius: var(--ts-radius-md);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ts-btn:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.ts-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ts-btn-cta {
+  background: var(--ts-cta);
+  color: #fff;
+}
+
+.ts-btn-cta:hover {
+  background: #175de2;
+}
+
+.ts-btn-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.ts-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 20px;
+}
+
+@media (max-width: 900px) {
+  .ts-nav-inner {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .ts-brand-sub {
+    display: none;
+  }
+
+  .ts-links {
+    order: 3;
+    width: 100%;
+    margin: 0;
+    overflow-x: auto;
+  }
+
+  .ts-auth {
+    margin-left: auto;
+  }
+
+  .ts-auth-user {
+    display: none;
+  }
+}

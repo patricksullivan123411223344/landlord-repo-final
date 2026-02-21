@@ -1,5 +1,5 @@
 /**
- * ri-fair-rent.js â€” PVD Tenant Board
+ * ri-fair-rent.js Ã¢â‚¬â€ PVD Tenant Board
  * Uses Supabase for forum data when configured; falls back to localStorage.
  * Wired to app backend: /zips, /api/ai-answer, /api/board-config
  */
@@ -150,9 +150,18 @@ async function signOut() {
   setAuthUI();
 }
 
+function focusAuth() {
+  const gate = $("auth-gate");
+  if (!gate) return;
+  gate.style.display = "block";
+  gate.scrollIntoView({ behavior: "smooth", block: "center" });
+  $("auth-email")?.focus();
+}
+
 window.signIn = signIn;
 window.signUp = signUp;
 window.signOut = signOut;
+window.focusAuth = focusAuth;
 
 function getVoterId() {
   let id = localStorage.getItem("pvd-voter-id");
@@ -190,7 +199,7 @@ const SEED = [
     type: "roommate",
     name: "QuietGradStudent",
     zip: "02906",
-    title: "Looking for a room near College Hill â€” $950/mo budget",
+    title: "Looking for a room near College Hill Ã¢â‚¬â€ $950/mo budget",
     body: "PhD student at Brown, mostly home evenings studying. Very clean, no parties. Would love a calm place within walking distance of campus.",
     budget: 950,
     movein: "2026-03",
@@ -206,14 +215,14 @@ const SEED = [
     type: "tenant",
     name: "Anonymous",
     zip: "02906",
-    title: 'Landlord kept my full $1,400 deposit for "cleaning" â€” is this legal?',
+    title: 'Landlord kept my full $1,400 deposit for "cleaning" Ã¢â‚¬â€ is this legal?',
     body: "Moved out in November, left the place cleaner than I found it. Got a letter saying they kept everything for cleaning and repainting. No itemized list.",
     topic: "Deposits",
     votes: 18,
     ts: Date.now() - 86400000 * 10,
     replies: [
       {
-        text: "Under RIGL 34-18-19, your landlord must return your deposit within 20 days of vacating with an itemized written list of deductions. Normal wear and tear â€” including painting â€” cannot be deducted. Send a certified demand letter. If they don't respond in 10 days, you can sue in small claims court for double the deposit amount plus attorney fees.",
+        text: "Under RIGL 34-18-19, your landlord must return your deposit within 20 days of vacating with an itemized written list of deductions. Normal wear and tear Ã¢â‚¬â€ including painting Ã¢â‚¬â€ cannot be deducted. Send a certified demand letter. If they don't respond in 10 days, you can sue in small claims court for double the deposit amount plus attorney fees.",
         isAI: true,
         ts: Date.now() - 86400000 * 10 + 300000,
       },
@@ -229,7 +238,7 @@ const SEED = [
     type: "roommate",
     name: "RemoteDevPVD",
     zip: "02903",
-    title: "Co-applicant wanted for Downtown 2BR â€” up to $1,300/mo",
+    title: "Co-applicant wanted for Downtown 2BR Ã¢â‚¬â€ up to $1,300/mo",
     body: "Software dev working from home. Have a small dog (15lb, very chill). Looking for someone social but fine with daytime calls. Hoping to find a place March/April.",
     budget: 1300,
     movein: "2026-03",
@@ -245,14 +254,14 @@ const SEED = [
     type: "tenant",
     name: "Anonymous",
     zip: "02909",
-    title: "No heat for 3 days, landlord not responding â€” what can I do?",
-    body: "Radiators stopped working Tuesday. Texted landlord twice, no answer. It's been below 30Â°F at night. I have a toddler.",
+    title: "No heat for 3 days, landlord not responding Ã¢â‚¬â€ what can I do?",
+    body: "Radiators stopped working Tuesday. Texted landlord twice, no answer. It's been below 30Ã‚Â°F at night. I have a toddler.",
     topic: "Heat",
     votes: 31,
     ts: Date.now() - 86400000 * 3,
     replies: [
       {
-        text: "RI law requires landlords to maintain heat capable of 68Â°F (6amâ€“11pm) and 65Â°F at night, September through June. After 3 days with no response you have three options: (1) repair-and-deduct â€” hire someone, keep receipts, deduct from rent, (2) escrow your rent with the court until fixed, or (3) terminate the lease without penalty. Call Providence Code Enforcement at (401) 680-5327 and document everything with timestamped photos. With a toddler in the home this rises to an emergency â€” they must respond faster.",
+        text: "RI law requires landlords to maintain heat capable of 68Ã‚Â°F (6amÃ¢â‚¬â€œ11pm) and 65Ã‚Â°F at night, September through June. After 3 days with no response you have three options: (1) repair-and-deduct Ã¢â‚¬â€ hire someone, keep receipts, deduct from rent, (2) escrow your rent with the court until fixed, or (3) terminate the lease without penalty. Call Providence Code Enforcement at (401) 680-5327 and document everything with timestamped photos. With a toddler in the home this rises to an emergency Ã¢â‚¬â€ they must respond faster.",
         isAI: true,
         ts: Date.now() - 86400000 * 3 + 180000,
       },
@@ -263,7 +272,7 @@ const SEED = [
     type: "roommate",
     name: "NurseNightShift",
     zip: "02912",
-    title: "Seeking quiet roommate near Miriam Hospital â€” $1,100/mo",
+    title: "Seeking quiet roommate near Miriam Hospital Ã¢â‚¬â€ $1,100/mo",
     body: "RN at Miriam, work nights so I sleep days. Need someone who respects sleep schedules. Super clean, keep to myself. Open to splitting a 2BR.",
     budget: 1100,
     movein: "2026-04",
@@ -279,7 +288,7 @@ const SEED = [
     type: "tenant",
     name: "Anonymous",
     zip: "02912",
-    title: "Landlord entering my apartment without notice â€” is this legal?",
+    title: "Landlord entering my apartment without notice Ã¢â‚¬â€ is this legal?",
     body: "Found things moved around twice this week while I was at work. Nothing in my lease about entry. What can I do?",
     topic: "Entry",
     votes: 12,
@@ -377,7 +386,7 @@ async function render() {
   else if (currentFilter.startsWith("0")) filtered = posts.filter((p) => p.zip === currentFilter);
 
   if (!filtered.length) {
-    feed.innerHTML = `<div class="empty">No posts here yet â€” be the first!</div>`;
+    feed.innerHTML = `<div class="empty">No posts here yet Ã¢â‚¬â€ be the first!</div>`;
     return;
   }
 
@@ -417,7 +426,7 @@ function postHTML(p, userVote) {
             <div class="reply-text">${esc(r.text)}</div>
             <div class="reply-meta">
               ${r.isAI ? '<span class="ai-label">RI LAW AI</span>' : "Community"}
-              Â· ${timeAgo(r.ts)}
+              Ã‚Â· ${timeAgo(r.ts)}
             </div>
           </div>
         </div>`
@@ -434,7 +443,7 @@ function postHTML(p, userVote) {
         <div class="reply-compose">
           <input class="reply-input" id="reply-${p.id}" placeholder="Add your answer anonymously..."/>
           <button class="reply-submit" onclick="submitReply('${p.id}')">Post</button>
-          <button class="ai-answer-btn" id="ai-btn-${p.id}" onclick="getAI('${p.id}')">âš¡ Ask AI</button>
+          <button class="ai-answer-btn" id="ai-btn-${p.id}" onclick="getAI('${p.id}')">Ã¢Å¡Â¡ Ask AI</button>
         </div>`
       }
     </div>`
@@ -446,19 +455,19 @@ function postHTML(p, userVote) {
     <div class="post-main">
       <div class="post-meta">
         <span class="post-type-badge ${p.type === "roommate" ? "badge-roommate" : "badge-tenant"}">
-          ${p.type === "roommate" ? "ðŸ  Roommate" : "ðŸ’¬ Q&A"}
+          ${p.type === "roommate" ? "Ã°Å¸ÂÂ  Roommate" : "Ã°Å¸â€™Â¬ Q&A"}
         </span>
         <span class="post-author">${esc(p.name)}</span>
         <span class="post-time">${timeAgo(p.ts)}</span>
       </div>
       <div class="post-title" onclick="toggleExpand('${p.id}')">${esc(p.title)}</div>
-      ${p.body ? `<div class="post-body">${esc(isExpanded ? p.body : p.body.slice(0, 140) + (p.body.length > 140 ? "â€¦" : ""))}</div>` : ""}
+      ${p.body ? `<div class="post-body">${esc(isExpanded ? p.body : p.body.slice(0, 140) + (p.body.length > 140 ? "Ã¢â‚¬Â¦" : ""))}</div>` : ""}
       ${metaRow}
       <div class="post-footer">
         <div class="vote-group">
-          <button class="vote-btn ${userVote === "up" ? "voted-up" : ""}" onclick="vote('${p.id}','up')">â–²</button>
+          <button class="vote-btn ${userVote === "up" ? "voted-up" : ""}" onclick="vote('${p.id}','up')">Ã¢â€“Â²</button>
           <span class="vote-count">${p.votes}</span>
-          <button class="vote-btn ${userVote === "down" ? "voted-down" : ""}" onclick="vote('${p.id}','down')">â–¼</button>
+          <button class="vote-btn ${userVote === "down" ? "voted-down" : ""}" onclick="vote('${p.id}','down')">Ã¢â€“Â¼</button>
         </div>
         <button class="reply-btn" onclick="toggleExpand('${p.id}')">
           ${isExpanded ? "Hide" : "View"} replies
@@ -554,7 +563,7 @@ async function getAI(id) {
 
   const btn = document.getElementById(`ai-btn-${id}`);
   if (btn) {
-    btn.textContent = "âš¡ Thinking...";
+    btn.textContent = "Ã¢Å¡Â¡ Thinking...";
     btn.disabled = true;
   }
   const posts = await loadPosts();
@@ -591,7 +600,7 @@ async function getAI(id) {
     alert("AI unavailable right now. Community answers still work!");
   }
   if (btn) {
-    btn.textContent = "âš¡ Ask AI";
+    btn.textContent = "Ã¢Å¡Â¡ Ask AI";
     btn.disabled = false;
   }
 }
@@ -628,7 +637,7 @@ async function submitRoommate() {
     type: "roommate",
     name,
     zip: $("rm-zip")?.value || "",
-    title: `Looking for ${($("rm-seeking")?.value || "").toLowerCase()} â€” $${budget}/mo budget`,
+    title: `Looking for ${($("rm-seeking")?.value || "").toLowerCase()} Ã¢â‚¬â€ $${budget}/mo budget`,
     body: $("rm-bio")?.value?.trim() || "",
     budget,
     movein: $("rm-movein")?.value || null,
@@ -773,7 +782,7 @@ async function populateZips() {
     const zips = await res.json();
     const rmZip = $("rm-zip");
     const qaZip = $("qa-zip");
-    const opts = zips.map((z) => `<option value="${z.zip}">${z.zip}${z.neighborhood ? " â€” " + z.neighborhood : ""}</option>`);
+    const opts = zips.map((z) => `<option value="${z.zip}">${z.zip}${z.neighborhood ? " Ã¢â‚¬â€ " + z.neighborhood : ""}</option>`);
     if (rmZip) {
       const current = rmZip.value;
       rmZip.innerHTML = opts.join("");

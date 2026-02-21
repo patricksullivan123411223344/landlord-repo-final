@@ -3,8 +3,8 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(26, 24, 20, 0.6);
-  z-index: 200;
+  background: rgba(15, 45, 82, 0.36);
+  z-index: 220;
   align-items: center;
   justify-content: center;
   padding: 20px;
@@ -20,7 +20,7 @@
   max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 16px 48px rgba(15, 45, 82, 0.24);
 }
 
 .modal-stripe { height: 4px; border-radius: 10px 10px 0 0; }
@@ -33,26 +33,30 @@
   align-items: center;
 }
 
-.modal-title { font-family: var(--serif); font-size: 22px; }
+.modal-title { font-size: 22px; font-weight: 700; }
 
 .modal-close {
-  background: none; border: none;
-  color: var(--muted); font-size: 22px; cursor: pointer;
-  line-height: 1; padding: 2px 6px; border-radius: 4px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 21px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
 }
 
 .modal-close:hover { background: var(--surface2); color: var(--text); }
 
 .modal-body { padding: 22px 24px; }
 
-/* Form */
 .field { margin-bottom: 16px; }
 
 .field-label {
   display: block;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 6px;
@@ -62,15 +66,13 @@
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: var(--sans);
+  border-radius: 8px;
+  font-size: 14px;
   color: var(--text);
   background: var(--surface);
-  transition: border-color 0.12s;
 }
 
-.input:focus { outline: none; border-color: var(--border2); }
+.input:focus { outline: 2px solid rgba(30, 107, 255, 0.2); border-color: var(--cta); }
 textarea.input { resize: vertical; min-height: 90px; line-height: 1.6; }
 select.input { appearance: none; cursor: pointer; }
 
@@ -81,37 +83,37 @@ select.input { appearance: none; cursor: pointer; }
 .ls-btn {
   padding: 8px 6px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 8px;
   background: var(--surface);
   color: var(--muted2);
   font-size: 11px;
-  font-family: var(--sans);
   cursor: pointer;
   text-align: center;
-  transition: all 0.12s;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.ls-btn.on { background: var(--roommate-bg); color: var(--roommate); border-color: var(--roommate-border); font-weight: 600; }
+.ls-btn.on {
+  background: var(--roommate-bg);
+  color: #147f5c;
+  border-color: var(--roommate-border);
+}
 
 .submit-btn {
   width: 100%;
   padding: 13px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
-  font-family: var(--sans);
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
   margin-top: 4px;
 }
 
-.submit-roommate { background: var(--roommate); color: #fff; }
-.submit-roommate:hover { background: #235c42; }
+.submit-roommate { background: var(--cta); color: #fff; }
+.submit-roommate:hover { background: #175de2; }
 
-.submit-tenant { background: var(--tenant); color: #fff; }
-.submit-tenant:hover { background: #6a3500; }
+.submit-tenant { background: var(--primary); color: #fff; }
+.submit-tenant:hover { background: #123968; }
 
 .form-note {
   font-size: 11px;
@@ -123,11 +125,11 @@ select.input { appearance: none; cursor: pointer; }
 
 .tenant-info-banner {
   padding: 11px 14px;
-  background: var(--tenant-bg);
-  border: 1px solid var(--tenant-border);
-  border-radius: 6px;
+  background: #eef4ff;
+  border: 1px solid #c5d6ff;
+  border-radius: 8px;
   font-size: 12px;
-  color: var(--tenant);
+  color: var(--primary);
   margin-bottom: 18px;
   line-height: 1.6;
 }

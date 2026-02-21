@@ -1,28 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Landlord Rating</title>
-        <link rel="stylesheet" href="/css/index.css">
-    </head>
-    <body>
-        <main class="card">
-            <h1>Landlord Rating</h1>
-            <p class="subtitle">Find affordable housing & landlord ratings in Providence, RI</p>
-            <div class="button-grid">
-                <a href="/rating" class="btn btn-primary">Get Rating</a>
-                <a href="/fair-rent" class="btn btn-secondary">Tenant Board</a>
-            </div>
-        </main>
-        <div id="server-required" class="server-notice">
-            <strong>Run the server first.</strong> From the project folder: <code>uvicorn python.main:app --reload</code><br>
-            Then open <a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a>
-        </div>
-        <script>
-            if (window.location.protocol === 'file:') {
-                document.getElementById('server-required').style.display = 'block';
-            }
-        </script>
-    </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenant Shield</title>
+  <link rel="stylesheet" href="/css/brand.css">
+  <link rel="stylesheet" href="/css/index.css">
+</head>
+<body>
+  <header class="ts-nav">
+    <div class="ts-nav-inner">
+      <a class="ts-brand" href="/">Tenant Shield</a>
+      <span class="ts-brand-sub">Rent Intelligence Platform</span>
+      <nav class="ts-links">
+        <a class="ts-link active" href="/">Home</a>
+        <a class="ts-link" href="/rating">Get Rating</a>
+        <a class="ts-link" href="/fair-rent">Tenant Board</a>
+      </nav>
+      <div class="ts-auth">
+        <a class="ts-btn ts-btn-ghost" href="/fair-rent#auth-gate">Log In</a>
+        <a class="ts-btn ts-btn-cta" href="/fair-rent#auth-gate">Sign Up</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="ts-page">
+    <section class="hero-card">
+      <p class="eyebrow">Protective. Trustworthy. Data-Driven.</p>
+      <h1>Confident Decisions for Providence Renters</h1>
+      <p class="subtitle">Tenant Shield combines fair-rent analytics and community intelligence to help you evaluate housing options with clarity.</p>
+      <div class="button-grid">
+        <a href="/rating" class="ts-btn ts-btn-cta">Get Rating</a>
+        <a href="/fair-rent" class="ts-btn board-btn">Open Tenant Board</a>
+      </div>
+    </section>
+
+    <div id="server-required" class="server-notice">
+      <strong>Run the server first.</strong> From the project folder: <code>uvicorn python.main:app --reload</code><br>
+      Then open <a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a>
+    </div>
+  </main>
+
+  <script>
+    if (window.location.protocol === "file:") {
+      document.getElementById("server-required").style.display = "block";
+    }
+  </script>
+</body>
 </html>
