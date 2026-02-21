@@ -1,0 +1,6 @@
+/* ri-fair-rent — main stylesheet (imports split modules) */
+@import url("ri-fair-rent/variables.css");
+@import url("ri-fair-rent/base.css");
+@import url("ri-fair-rent/header.css");
+@import url("ri-fair-rent/feed.css");
+@import url("ri-fair-rent/modal.css");

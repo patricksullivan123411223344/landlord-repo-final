@@ -1,0 +1,70 @@
+/* index.css — Landlord Rating home page */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #f5f2eb;
+  color: #1a1814;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+a + a {
+  margin-left: 0.75rem;
+}
+
+button {
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+a:first-of-type button {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+a:last-of-type button {
+  background: #7b3f00;
+  color: #fff;
+}
+
+#server-required a {
+  color: #2d6a4f;
+  font-weight: 600;
+}
+
+#server-required code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}

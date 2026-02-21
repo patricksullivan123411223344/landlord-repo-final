@@ -1,0 +1,299 @@
+/* ri-fair-rent feed, filters, post cards */
+.layout {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 4px;
+  font-weight: 600;
+}
+
+.filter-btn {
+  padding: 5px 13px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted2);
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-weight: 500;
+}
+
+.filter-btn:hover { border-color: var(--text); color: var(--text); }
+.filter-btn.active-all { background: var(--text); color: var(--bg); border-color: var(--text); }
+.filter-btn.active-roommate { background: var(--roommate-bg); color: var(--roommate); border-color: var(--roommate-border); }
+.filter-btn.active-tenant { background: var(--tenant-bg); color: var(--tenant); border-color: var(--tenant-border); }
+
+/* Post card */
+.post {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.post:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); border-color: var(--border2); }
+
+.post-stripe {
+  height: 3px;
+  width: 100%;
+}
+
+.stripe-roommate { background: var(--roommate); }
+.stripe-tenant { background: var(--tenant); }
+
+.post-main { padding: 18px 20px; }
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.post-type-badge {
+  padding: 2px 9px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.badge-roommate { background: var(--roommate-bg); color: var(--roommate); border: 1px solid var(--roommate-border); }
+.badge-tenant { background: var(--tenant-bg); color: var(--tenant); border: 1px solid var(--tenant-border); }
+
+.post-author { font-size: 13px; font-weight: 600; color: var(--text); }
+.post-time { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+.post-title {
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.post-title:hover { color: var(--muted2); }
+
+.post-body {
+  font-size: 13px;
+  color: var(--muted2);
+  line-height: 1.65;
+  margin-bottom: 12px;
+}
+
+/* Roommate specifics */
+.roommate-details {
+  display: flex;
+  gap: 20px;
+  padding: 12px 16px;
+  background: var(--roommate-bg);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-item { display: flex; flex-direction: column; gap: 2px; }
+.detail-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--roommate); font-weight: 600; }
+.detail-value { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* Tags */
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  color: var(--muted2);
+  background: var(--surface2);
+  font-weight: 500;
+}
+
+/* Post footer */
+.post-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.vote-group { display: flex; align-items: center; gap: 4px; }
+
+.vote-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--sans);
+}
+
+.vote-btn:hover { border-color: var(--border2); color: var(--text); }
+.vote-btn.voted-up { background: var(--roommate-bg); color: var(--roommate); border-color: var(--roommate-border); }
+.vote-btn.voted-down { background: var(--tenant-bg); color: var(--tenant); border-color: var(--tenant-border); }
+
+.vote-count { font-size: 13px; font-weight: 600; color: var(--text); min-width: 20px; text-align: center; }
+
+.reply-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 12px;
+  font-size: 12px; color: var(--muted2); cursor: pointer;
+  font-family: var(--sans); font-weight: 500;
+  transition: all 0.12s;
+}
+
+.reply-btn:hover { border-color: var(--border2); color: var(--text); }
+.reply-count { font-size: 11px; color: var(--muted); }
+
+.contact-btn {
+  margin-left: auto;
+  padding: 5px 14px;
+  border-radius: 4px;
+  background: var(--roommate);
+  color: #fff;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.contact-btn:hover { background: #235c42; }
+
+/* Replies */
+.replies-section {
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+}
+
+.reply-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.reply-item:last-of-type { border-bottom: none; }
+
+.reply-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.ind-community { background: var(--border2); }
+.ind-ai { background: var(--ai); }
+
+.reply-content { flex: 1; }
+.reply-text { font-size: 13px; color: var(--muted2); line-height: 1.65; }
+
+.reply-meta {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ai-label {
+  padding: 1px 7px;
+  border-radius: 3px;
+  background: var(--ai-bg);
+  color: var(--ai);
+  border: 1px solid var(--ai-border);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.reply-compose {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.reply-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.12s;
+}
+
+.reply-input:focus { outline: none; border-color: var(--border2); }
+
+.reply-submit {
+  padding: 8px 14px;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reply-submit:hover { background: #333; }
+
+.ai-answer-btn {
+  padding: 8px 12px;
+  background: var(--ai-bg);
+  color: var(--ai);
+  border: 1px solid var(--ai-border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+
+.ai-answer-btn:hover { background: #dce8f8; }
+.ai-answer-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 2;
+}

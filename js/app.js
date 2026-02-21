@@ -4,11 +4,11 @@ async function loadZips() {
     const res = await fetch("/zips");
     const zips = await res.json();
     const sel = $("zip");
-    sel.innterHTML = "";
+    sel.innerHTML = "";
     for (const z of zips) {
         const opt = document.createElement("option");
         opt.value = z.zip;
-        opt.textContent = `&{z.zip} ${z.neighborhood ? "- " + z.neightborhood : ""}`;
+        opt.textContent = `${z.zip} ${z.neighborhood ? "- " + z.neighborhood : ""}`;
         sel.appendChild(opt);
     }
 }
@@ -31,7 +31,7 @@ const res = await fetch("/analyze", {
 
 const text = await res.text();
 try {
-    $("out").textContent = JSON.stringify(JSON.parse(test), null, 2);
+    $("out").textContent = JSON.stringify(JSON.parse(text), null, 2);
 } catch {
     $("out").textContent = text;
   }

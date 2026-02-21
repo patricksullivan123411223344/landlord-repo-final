@@ -1,11 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <Title>Landlord Rating</Title>
-        <link rel="stylesheet" href="css/index.css">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Landlord Rating</title>
+        <link rel="stylesheet" href="/css/index.css">
     </head>
     <body>
-        <h1>Landlord Rating</h1> 
-        <a href="/html/ratingPage.html"><buton>Start</buton></a>
+        <h1>Landlord Rating</h1>
+        <p style="margin-bottom:1rem;color:#6a6560;">Find affordable housing & landlord ratings in Providence, RI</p>
+        <a href="/rating"><button>Start — Get Rating</button></a>
+        <a href="/fair-rent"><button>Tenant Board</button></a>
+        <div id="server-required" style="display:none;margin-top:2rem;padding:1rem;background:#fdf3ea;border:1px solid #f5c49a;border-radius:6px;font-size:0.9rem;max-width:400px;">
+            <strong>Run the server first.</strong> From the project folder: <code>uvicorn python.main:app --reload</code><br>
+            Then open <a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a>
+        </div>
+        <script>
+            if (window.location.protocol === 'file:') {
+                document.getElementById('server-required').style.display = 'block';
+            }
+        </script>
     </body>
 </html>

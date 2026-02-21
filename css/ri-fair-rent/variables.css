@@ -1,0 +1,22 @@
+/* ri-fair-rent variables */
+:root {
+  --bg: #f5f2eb;
+  --surface: #ffffff;
+  --surface2: #f9f7f2;
+  --border: #e5e0d5;
+  --border2: #ccc8be;
+  --text: #1a1814;
+  --muted: #8a8580;
+  --muted2: #6a6560;
+  --roommate: #2d6a4f;
+  --roommate-bg: #edf7f1;
+  --roommate-border: #b7dfc9;
+  --tenant: #7b3f00;
+  --tenant-bg: #fdf3ea;
+  --tenant-border: #f5c49a;
+  --ai: #1a3a6b;
+  --ai-bg: #eaf0fb;
+  --ai-border: #a8c0ef;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'Instrument Sans', system-ui, sans-serif;
+}
