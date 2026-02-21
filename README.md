@@ -19,7 +19,8 @@ If you are developing a production application, we recommend using TypeScript wi
 within this we will offer a report of the landlord and a rating of how great it is to live under them because besides finding a place to stay , finding who out who you are living under matters just as much. With (website name) to find your price point and The rental housing market often lacks transparency. Tenants may face: Unresponsive landlords Poor maintenance Unfair rent increases
 Hidden issues not disclosed before signing a lease By allowing renters to share experiences, this project: Encourages accountability Promotes fair housing practices Helps tenants make informed decisions
 
-# future improvment plans Backend database integration User authentication system Search by city or ZIP code Data visualization for rent trendsFuture improvements could include: Verified tenant accounts Report/flag review system Admin moderation dashboard 
+# future improvment plans
+Backend database integration User authentication system Search by city or ZIP code Data visualization for rent trendsFuture improvements could include: Verified tenant accounts Report/flag review system Admin moderation dashboard 
 
 # current features Landlord Rating System
 Users can leave ratings and reviews
