@@ -1,0 +1,25 @@
+<!DOCTYPE html> 
+<html lang="en">
+    <head>
+        <Title>Rating Page</Title>
+        <link rel="stylesheet" href="/css/ratingPage.css">
+    </head>
+    <body>
+        <h2>Get Rating</h2>
+
+        <input id="address" placeholder="123 Main St, Providence RI" />
+        <select id="zip"></select>
+        <select id="bedrooms">
+            <option value="studio">Studio</option>
+            <option value="1">1 BR</option>
+            <option value="2" selected>2 BR</option>
+            <option value="3">3 BR</option>
+        </select>
+        <input id="asking_rent" type="number" placeholder="2400" />
+
+        <button id="go">Analyze</button>
+        <pre id="out"></pre>
+
+        <script src="/js/app.js"></script>
+    </body>
+</html>
