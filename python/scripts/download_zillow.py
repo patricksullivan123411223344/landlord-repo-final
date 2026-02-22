@@ -21,6 +21,7 @@ import httpx
 import csv
 import json
 from urllib.parse import urlparse
+from dotenv import load_dotenv
 
 DEFAULT_DATASETS = {
     "zip_zri_allhomes": "https://files.zillowstatic.com/research/public/Zip_Zri_AllHomes.csv",
@@ -28,6 +29,7 @@ DEFAULT_DATASETS = {
 }
 
 DEFAULT_OUTDIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "zillow")
+load_dotenv()
 
 
 def ensure_dir(path: str):
@@ -114,7 +116,12 @@ def run_download(urls, outdir=DEFAULT_OUTDIR, sample_n=10, state_filter: str | N
 
 def main():
     parser = argparse.ArgumentParser(description="Download Zillow Research CSVs and produce JSON summaries")
-    parser.add_argument("--outdir", "-o", default=DEFAULT_OUTDIR, help="Output directory")
+    parser.add_argument(
+        "--outdir",
+        "-o",
+        default=os.getenv("ZILLOW_DATA_DIR", DEFAULT_OUTDIR),
+        help="Output directory (defaults to ZILLOW_DATA_DIR or python/data/zillow)",
+    )
     parser.add_argument("--sample", "-n", type=int, default=10, help="Number of sample rows to save")
     parser.add_argument("--list", action="store_true", help="List default named datasets")
     parser.add_argument("--urls", nargs="*", help="One or more dataset URLs (if none, defaults are used)")
