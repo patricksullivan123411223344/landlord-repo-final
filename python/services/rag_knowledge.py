@@ -76,7 +76,7 @@ def search_knowledge(query: str, top_k: int = 4) -> list[KnowledgeChunk]:
     return results[:top_k]
 
 
-def format_knowledge_context(chunks: list[KnowledgeChunk], max_chars: int = 5000) -> str:
+def format_knowledge_context(chunks: list[KnowledgeChunk], max_chars: int = 8000) -> str:
     if not chunks:
         return ""
     parts: list[str] = []

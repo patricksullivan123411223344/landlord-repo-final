@@ -13,9 +13,12 @@ Secrets:
 """
 
 import os
+import time
+import threading
+from collections import defaultdict, deque
 import httpx
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
@@ -40,6 +43,82 @@ HTML_DIR = os.path.join(BASE_DIR, "html")
 
 # ---- App ----
 app = FastAPI(title="Landlord Rating")
+
+# ---- AI Guardrails / Rate Limits ---------------------------------------------
+_RATE_LIMIT_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
+_RATE_LIMIT_LOCK = threading.Lock()
+
+AI_ANSWER_LIMIT = (12, 300)      # 12 requests / 5 minutes per IP
+RATING_CHAT_LIMIT = (18, 300)    # 18 requests / 5 minutes per IP
+MAX_AI_TITLE_CHARS = 400
+MAX_AI_BODY_CHARS = 3000
+MAX_CHAT_MESSAGE_CHARS = 3500
+MAX_CHAT_HISTORY_TURNS = 10
+MAX_CHAT_TURN_CHARS = 1800
+MAX_CHAT_TOTAL_CHARS = 12000
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    return (request.client.host if request.client else "unknown").strip() or "unknown"
+
+
+def _allow_rate_limit(request: Request, bucket: str, max_requests: int, window_seconds: int) -> tuple[bool, int]:
+    now = time.time()
+    key = f"{bucket}:{_client_ip(request)}"
+    with _RATE_LIMIT_LOCK:
+        q = _RATE_LIMIT_BUCKETS[key]
+        while q and (now - q[0]) > window_seconds:
+            q.popleft()
+        if len(q) >= max_requests:
+            retry_after = max(1, int(window_seconds - (now - q[0])))
+            return False, retry_after
+        q.append(now)
+    return True, 0
+
+
+def _rate_limit_error(retry_after: int) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        headers={"Retry-After": str(retry_after)},
+        content={
+            "answer": "Too many AI requests right now. Please wait a minute and try again.",
+            "sources": [],
+            "retry_after_seconds": retry_after,
+        },
+    )
+
+
+def _trim_text(value: str, max_chars: int) -> str:
+    return (value or "").strip()[:max_chars]
+
+
+def _validate_chat_request(req: "RatingChatRequest") -> str | None:
+    message = (req.message or "").strip()
+    if not message:
+        return "Please enter a message."
+    if len(message) > MAX_CHAT_MESSAGE_CHARS:
+        return f"Message is too long. Please keep it under {MAX_CHAT_MESSAGE_CHARS} characters."
+
+    turns = req.history or []
+    if len(turns) > MAX_CHAT_HISTORY_TURNS:
+        return f"Chat history is too long. Please start a new chat after {MAX_CHAT_HISTORY_TURNS} turns."
+
+    total_chars = len(message)
+    for turn in turns:
+        role = (turn.role or "").lower().strip()
+        if role not in {"user", "assistant"}:
+            return "Invalid chat history format."
+        total_chars += len((turn.content or "").strip())
+        if len((turn.content or "")) > MAX_CHAT_TURN_CHARS:
+            return f"One of the prior messages is too long. Keep each message under {MAX_CHAT_TURN_CHARS} characters."
+    if total_chars > MAX_CHAT_TOTAL_CHARS:
+        return "Conversation is too long for one request. Start a new chat or shorten earlier messages."
+    return None
 
 # ---- Frontend Routes (defined before mounts so they take precedence) ----
 @app.get("/")
@@ -259,7 +338,7 @@ def _build_gemini_chat_contents(history: List[ChatTurn], user_prompt: str) -> Li
     contents: List[dict] = []
     for turn in _sanitize_history(history):
         role = "model" if turn.role.lower() == "assistant" else "user"
-        text = (turn.content or "").strip()
+        text = _trim_text(turn.content or "", MAX_CHAT_TURN_CHARS)
         if not text:
             continue
         contents.append({"role": role, "parts": [{"text": text}]})
@@ -268,10 +347,25 @@ def _build_gemini_chat_contents(history: List[ChatTurn], user_prompt: str) -> Li
 
 
 @app.post("/api/ai-answer")
-async def ai_answer(req: AIAnswerRequest):
+async def ai_answer(req: AIAnswerRequest, request: Request):
     """RI landlord-tenant Q&A via Gemini."""
+    allowed, retry_after = _allow_rate_limit(request, "ai_answer", *AI_ANSWER_LIMIT)
+    if not allowed:
+        return _rate_limit_error(retry_after)
+
     if not settings.gemini_api_key:
         return {"answer": "AI is not configured. Add GEMINI_API_KEY to .env and restart the server."}
+
+    if len((req.title or "").strip()) > MAX_AI_TITLE_CHARS:
+        return {"answer": f"Question title is too long. Please keep it under {MAX_AI_TITLE_CHARS} characters."}
+    if len((req.body or "").strip()) > MAX_AI_BODY_CHARS:
+        return {"answer": f"Question details are too long. Please keep them under {MAX_AI_BODY_CHARS} characters."}
+
+    req = AIAnswerRequest(
+        title=_trim_text(req.title, MAX_AI_TITLE_CHARS),
+        body=_trim_text(req.body, MAX_AI_BODY_CHARS),
+        topic=_trim_text(req.topic or "Other", 60) or "Other",
+    )
 
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent"
     payload = {
@@ -283,7 +377,7 @@ async def ai_answer(req: AIAnswerRequest):
         ],
         "generationConfig": {
             "temperature": 0.2,
-            "maxOutputTokens": 700,
+            "maxOutputTokens": 650,
         },
     }
 
@@ -308,22 +402,28 @@ async def ai_answer(req: AIAnswerRequest):
 
 
 @app.post("/api/rating-chat")
-async def rating_chat(req: RatingChatRequest):
+async def rating_chat(req: RatingChatRequest, request: Request):
     """
     Chat endpoint for /rating UI:
     - Gemini model answer
     - Local RAG context from python/rag/knowledge
     - Optional public context from Wikipedia
     """
+    allowed, retry_after = _allow_rate_limit(request, "rating_chat", *RATING_CHAT_LIMIT)
+    if not allowed:
+        return _rate_limit_error(retry_after)
+
     if not settings.gemini_api_key:
         return {
             "answer": "Chat AI is not configured. Add GEMINI_API_KEY to .env and restart the server.",
             "sources": [],
         }
 
-    user_message = (req.message or "").strip()
-    if not user_message:
-        return {"answer": "Please enter a message.", "sources": []}
+    validation_error = _validate_chat_request(req)
+    if validation_error:
+        return {"answer": validation_error, "sources": []}
+
+    user_message = _trim_text(req.message, MAX_CHAT_MESSAGE_CHARS)
 
     rag_chunks = search_knowledge(user_message, top_k=4)
     rag_context = format_knowledge_context(rag_chunks)
@@ -342,7 +442,7 @@ async def rating_chat(req: RatingChatRequest):
         "contents": contents,
         "generationConfig": {
             "temperature": 0.25,
-            "maxOutputTokens": 900,
+            "maxOutputTokens": 750,
         },
     }
 

@@ -473,7 +473,9 @@ function postHTML(p, userVote) {
           ${isExpanded ? "Hide" : "View"} replies
         </button>
         <span class="reply-count">${replyCount} ${replyCount === 1 ? "reply" : "replies"}</span>
-        ${p.type === "roommate" ? `<button class="contact-btn" onclick="showContact('${esc(p.contact || "")}','${esc(p.name)}')">Contact</button>` : ""}
+        ${p.type === "roommate"
+          ? `<button class="contact-btn" data-contact="${escAttr(p.contact || "")}" data-name="${escAttr(p.name)}" onclick="showContactFromButton(this)">Contact</button>`
+          : ""}
       </div>
     </div>
     ${repliesHTML}
@@ -607,6 +609,12 @@ async function getAI(id) {
 
 function showContact(contact, name) {
   alert(`Contact for ${name}:\n\n${contact || "No contact info provided."}`);
+}
+
+function showContactFromButton(btn) {
+  const contact = btn?.dataset?.contact || "";
+  const name = btn?.dataset?.name || "Anonymous";
+  showContact(contact, name);
 }
 
 // ---- FILTERS ---------------------------------------------------------------
@@ -775,6 +783,10 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+function escAttr(s) {
+  return esc(s).replace(/'/g, "&#39;");
+}
+
 // ---- ZIP POPULATION (from backend) -----------------------------------------
 async function populateZips() {
   try {
@@ -801,10 +813,6 @@ async function initBoardPage() {
       if (e.target === o) o.classList.remove("open");
     });
   });
-
-  $("btn-signin")?.addEventListener("click", signIn);
-  $("btn-signup")?.addEventListener("click", signUp);
-  $("btn-signout")?.addEventListener("click", signOut);
 
   $("auth-password")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") signIn();
