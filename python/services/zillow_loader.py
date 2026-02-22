@@ -2,158 +2,183 @@ from __future__ import annotations
 
 import csv
 import os
-from statistics import mean
+from dataclasses import dataclass
 from typing import Dict, Iterable, Optional
 
 from python.config import settings
 
-# Providence-area ZIPs used for local Zillow signal fallback.
-PROVIDENCE_ZIPS = {
-    "02903", "02904", "02905", "02906", "02907",
-    "02908", "02909", "02910", "02911", "02912",
+
+@dataclass(frozen=True)
+class ZillowDataset:
+    filename: str
+    metric: str
+    granularity: str
+    purpose: str
+
+
+DATASETS = {
+    "metro_zordi": ZillowDataset(
+        filename="Metro_zordi_uc_sfrcondomfr_month.csv",
+        metric="Observed rent index/value",
+        granularity="Metro",
+        purpose="Current rent signal for Providence metro",
+    ),
+    "national_zorf_growth": ZillowDataset(
+        filename="National_zorf_growth_uc_sfr_sm_month.csv",
+        metric="Forecast rent growth (%)",
+        granularity="National",
+        purpose="Forward rent trend adjustment signal",
+    ),
 }
 
-META_COLS = {
-    "RegionID", "SizeRank", "RegionName", "RegionType", "StateName", "State",
-}
+META_COLS = {"RegionID", "SizeRank", "RegionName", "RegionType", "StateName", "State", "BaseDate"}
 
 
-def _iter_csv_paths() -> Iterable[str]:
-    data_dir = settings.zillow_data_dir
-    if not os.path.isdir(data_dir):
-        return []
-    return [
-        os.path.join(data_dir, name)
-        for name in os.listdir(data_dir)
-        if name.lower().endswith(".csv")
-    ]
+def _data_dir() -> str:
+    return settings.zillow_data_dir
 
 
-def _find_candidates(*terms: str) -> list[str]:
-    terms_lc = [t.lower() for t in terms]
+def _dataset_path(dataset_key: str) -> Optional[str]:
+    ds = DATASETS.get(dataset_key)
+    if not ds:
+        return None
+    path = os.path.join(_data_dir(), ds.filename)
+    return path if os.path.isfile(path) else None
+
+
+def get_dataset_catalog() -> list[dict]:
     out = []
-    for path in _iter_csv_paths():
-        name = os.path.basename(path).lower()
-        if all(t in name for t in terms_lc):
-            out.append(path)
+    for key, ds in DATASETS.items():
+        out.append(
+            {
+                "key": key,
+                "filename": ds.filename,
+                "metric": ds.metric,
+                "granularity": ds.granularity,
+                "purpose": ds.purpose,
+                "path": os.path.join(_data_dir(), ds.filename),
+                "exists": os.path.isfile(os.path.join(_data_dir(), ds.filename)),
+            }
+        )
     return out
 
 
-def _latest_value(row: Dict[str, str], date_cols: Iterable[str]) -> Optional[float]:
-    for col in reversed(list(date_cols)):
-        raw = (row.get(col) or "").strip()
-        if raw in {"", "NA", "nan"}:
-            continue
-        try:
-            return float(raw)
-        except ValueError:
-            continue
+def _date_cols(fieldnames: Iterable[str]) -> list[str]:
+    return [c for c in fieldnames if c not in META_COLS]
+
+
+def _parse_float(v: str | None) -> Optional[float]:
+    raw = (v or "").strip()
+    if raw in {"", "NA", "nan"}:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def _latest_from_row(row: Dict[str, str], cols: list[str]) -> Optional[float]:
+    for c in reversed(cols):
+        n = _parse_float(row.get(c))
+        if n is not None:
+            return n
     return None
 
 
-def _read_latest_by_region(path: str) -> Dict[str, float]:
-    out: Dict[str, float] = {}
+def get_metro_latest(region_search: str = "Providence") -> Optional[float]:
+    """Latest metro series value for matching metro name (e.g. Providence)."""
+    path = _dataset_path("metro_zordi")
+    if not path:
+        return None
+
     with open(path, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         if reader.fieldnames is None:
-            return out
-        date_cols = [c for c in reader.fieldnames if c not in META_COLS]
+            return None
+        cols = _date_cols(reader.fieldnames)
+
+        # Prefer exact-ish region match.
         for row in reader:
-            region = (row.get("RegionName") or row.get("Region") or "").strip()
-            if not region:
-                continue
-            latest = _latest_value(row, date_cols)
-            if latest is not None:
-                out[region] = latest
-    return out
+            region = (row.get("RegionName") or "").strip()
+            if region_search.lower() in region.lower():
+                return _latest_from_row(row, cols)
 
-
-def get_metro_latest(region_search: str) -> Optional[float]:
-    """Return latest metro-level value for a region (e.g. Providence) if available."""
-    candidates = (
-        _find_candidates("metro", "zori")
-        + _find_candidates("metro", "zri")
-        + _find_candidates("metro", "zorf")
-    )
-    for path in candidates:
-        try:
-            region_values = _read_latest_by_region(path)
-            for region, value in region_values.items():
-                if region_search.lower() in region.lower():
-                    return value
-        except Exception:
-            continue
     return None
 
 
-def _is_national_row(region_name: str) -> bool:
-    rn = region_name.lower()
-    return "united states" in rn or rn in {"usa", "national", "us total"}
+def get_metro_series(region_search: str = "Providence") -> tuple[list[str], list[float]]:
+    """Return full date/value series for one metro region."""
+    path = _dataset_path("metro_zordi")
+    if not path:
+        return [], []
 
+    with open(path, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        if reader.fieldnames is None:
+            return [], []
+        cols = _date_cols(reader.fieldnames)
 
-def _is_providence_zip_row(row: Dict[str, str], region_name: str) -> bool:
-    region_id = (row.get("RegionName") or "").strip()
-    if region_id in PROVIDENCE_ZIPS:
-        return True
-    return region_name in PROVIDENCE_ZIPS
+        for row in reader:
+            region = (row.get("RegionName") or "").strip()
+            if region_search.lower() not in region.lower():
+                continue
+            xs: list[str] = []
+            ys: list[float] = []
+            for c in cols:
+                n = _parse_float(row.get(c))
+                if n is None:
+                    continue
+                xs.append(c)
+                ys.append(n)
+            return xs, ys
+
+    return [], []
 
 
 def load_national_zori_latest() -> Optional[float]:
     """
-    Return a single Zillow rent signal:
-    1) Prefer explicit national row from zori/zri/zorf files.
-    2) Fallback to Providence ZIP average from ZIP zri files.
+    Latest available national forecast growth value from
+    National_zorf_growth_uc_sfr_sm_month.csv.
     """
-    candidates = (
-        _find_candidates("zori")
-        + _find_candidates("zri")
-        + _find_candidates("zorf")
-    )
-    if not candidates:
+    path = _dataset_path("national_zorf_growth")
+    if not path:
         return None
 
-    # Pass 1: explicit national rows.
-    for path in candidates:
-        try:
-            with open(path, newline="", encoding="utf-8") as fh:
-                reader = csv.DictReader(fh)
-                if reader.fieldnames is None:
-                    continue
-                date_cols = [c for c in reader.fieldnames if c not in META_COLS]
-                for row in reader:
-                    region = (row.get("RegionName") or row.get("Region") or "").strip()
-                    if not region:
-                        continue
-                    if _is_national_row(region):
-                        value = _latest_value(row, date_cols)
-                        if value is not None:
-                            return value
-        except Exception:
-            continue
+    with open(path, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        if reader.fieldnames is None:
+            return None
+        cols = _date_cols(reader.fieldnames)
 
-    # Pass 2: Providence ZIP-based fallback.
-    for path in candidates:
-        name = os.path.basename(path).lower()
-        if "zip" not in name:
-            continue
-        try:
-            with open(path, newline="", encoding="utf-8") as fh:
-                reader = csv.DictReader(fh)
-                if reader.fieldnames is None:
-                    continue
-                date_cols = [c for c in reader.fieldnames if c not in META_COLS]
-                vals: list[float] = []
-                for row in reader:
-                    region = (row.get("RegionName") or row.get("Region") or "").strip()
-                    if not region:
-                        continue
-                    if _is_providence_zip_row(row, region):
-                        latest = _latest_value(row, date_cols)
-                        if latest is not None:
-                            vals.append(latest)
-                if vals:
-                    return round(mean(vals), 2)
-        except Exception:
-            continue
+        # File is typically one row for United States.
+        for row in reader:
+            region = (row.get("RegionName") or "").strip().lower()
+            if region and "united states" not in region and "national" not in region and region != "usa":
+                continue
+            return _latest_from_row(row, cols)
 
     return None
+
+
+def get_national_growth_series() -> tuple[list[str], list[float]]:
+    path = _dataset_path("national_zorf_growth")
+    if not path:
+        return [], []
+
+    with open(path, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        if reader.fieldnames is None:
+            return [], []
+        cols = _date_cols(reader.fieldnames)
+        for row in reader:
+            xs: list[str] = []
+            ys: list[float] = []
+            for c in cols:
+                n = _parse_float(row.get(c))
+                if n is None:
+                    continue
+                xs.append(c)
+                ys.append(n)
+            return xs, ys
+
+    return [], []

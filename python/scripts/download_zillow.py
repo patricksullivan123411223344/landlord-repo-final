@@ -1,149 +1,169 @@
 """
-download_zillow.py
+python/scripts/download_zillow.py
 
-Downloads Zillow Research CSVs into `python/data/zillow/` and produces small JSON summaries:
- - <csvname>.meta.json  => { columns: [...], row_count: N }
- - <csvname>.sample.json => first N rows as list-of-dicts
+Refactored for local CSV workflow:
+- Reads Zillow CSVs already present in python/data
+- Generates visualization PNG charts (no API/download required)
+
+Outputs:
+- python/data/visualizations/zillow/metro_providence_zordi.png
+- python/data/visualizations/zillow/national_zorf_growth.png
 
 Usage:
-  python python/scripts/download_zillow.py               # download defaults
-  python python/scripts/download_zillow.py --urls URL1 URL2
-  python python/scripts/download_zillow.py --list        # show default named datasets
-
-Notes:
-- Default URLs point to Zillow "research" CSVs; you can pass any direct CSV URL.
-- Respect Zillow terms; these datasets are the public research CSVs intended for research use.
+  python python/scripts/download_zillow.py
+  python python/scripts/download_zillow.py --region Providence
+  python python/scripts/download_zillow.py --outdir python/data/visualizations/zillow
 """
 
-import os
+from __future__ import annotations
+
 import argparse
-import httpx
-import csv
-import json
-from urllib.parse import urlparse
+import os
+import sys
+from typing import Optional
+
+import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 
-DEFAULT_DATASETS = {
-    "zip_zri_allhomes": "https://files.zillowstatic.com/research/public/Zip_Zri_AllHomes.csv",
-    "zip_zhvi_allhomes": "https://files.zillowstatic.com/research/public/Zip_Zhvi_AllHomes.csv",
-}
+# Allow direct script execution: `python python/scripts/download_zillow.py`
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
-DEFAULT_OUTDIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "zillow")
+from python.config import settings
+from python.services.zillow_loader import (
+    DATASETS,
+    get_dataset_catalog,
+    get_metro_series,
+    get_national_growth_series,
+)
+
 load_dotenv()
 
+DEFAULT_OUTDIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "visualizations", "zillow")
 
-def ensure_dir(path: str):
+
+def ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 
-def basename_from_url(url: str) -> str:
-    p = urlparse(url)
-    return os.path.basename(p.path)
+def _label_stride(n: int) -> int:
+    if n <= 12:
+        return 1
+    if n <= 36:
+        return 3
+    if n <= 72:
+        return 6
+    return 12
 
 
-def download_url(url: str, dest_path: str, client: httpx.Client):
-    with client.stream("GET", url, timeout=60.0) as r:
-        r.raise_for_status()
-        with open(dest_path, "wb") as fh:
-            for chunk in r.iter_bytes():
-                fh.write(chunk)
+def plot_series(
+    x_labels: list[str],
+    y_values: list[float],
+    title: str,
+    ylabel: str,
+    out_path: str,
+    color: str,
+    baseline: Optional[float] = None,
+) -> Optional[str]:
+    if not x_labels or not y_values:
+        return None
+
+    fig, ax = plt.subplots(figsize=(12, 5.5))
+    ax.plot(range(len(y_values)), y_values, linewidth=2.3, color=color)
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel("Date")
+    ax.grid(True, alpha=0.25)
+
+    if baseline is not None:
+        ax.axhline(baseline, linestyle="--", linewidth=1, alpha=0.5, color="#888")
+
+    stride = _label_stride(len(x_labels))
+    tick_idx = list(range(0, len(x_labels), stride))
+    ax.set_xticks(tick_idx)
+    ax.set_xticklabels([x_labels[i] for i in tick_idx], rotation=40, ha="right", fontsize=8)
+
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return out_path
 
 
-def parse_csv_summary(csv_path: str, sample_n: int = 10, state_filter: str | None = None):
-    meta = {"columns": [], "row_count": 0}
-    sample = []
-    with open(csv_path, newline='', encoding='utf-8') as fh:
-        reader = csv.DictReader(fh)
-        if reader.fieldnames is None:
-            return meta, sample
-        meta["columns"] = reader.fieldnames
-        for i, row in enumerate(reader, start=1):
-            if state_filter:
-                # common Zillow CSVs use 'State' for state abbreviation
-                if (row.get("State") or row.get("state") or row.get("StateName") or row.get("statename") or "").strip().upper() != state_filter.upper():
-                    continue
-            if len(sample) < sample_n:
-                sample.append(row)
-            meta["row_count"] += 1
-    return meta, sample
-
-
-def run_download(urls, outdir=DEFAULT_OUTDIR, sample_n=10, state_filter: str | None = None):
+def build_visualizations(region: str, outdir: str) -> list[str]:
     ensure_dir(outdir)
-    client = httpx.Client()
-    results = []
-    for url in urls:
-        try:
-            name = basename_from_url(url) or url.replace('/', '_')
-            dest_csv = os.path.join(outdir, name)
-            print(f"Downloading {url} -> {dest_csv}")
-            download_url(url, dest_csv, client)
+    generated: list[str] = []
 
-            # If a state filter is provided, create a filtered CSV first
-            target_csv = dest_csv
-            if state_filter:
-                filtered_csv = dest_csv + f".{state_filter.upper()}.csv"
-                print(f"Filtering {dest_csv} -> {filtered_csv} (state={state_filter})")
-                # read original and write only rows matching the state
-                with open(dest_csv, newline='', encoding='utf-8') as src, open(filtered_csv, 'w', newline='', encoding='utf-8') as dst:
-                    reader = csv.DictReader(src)
-                    if reader.fieldnames is None:
-                        print(f"No columns found in {dest_csv}, skipping filter")
-                    else:
-                        writer = csv.DictWriter(dst, fieldnames=reader.fieldnames)
-                        writer.writeheader()
-                        for row in reader:
-                            if (row.get('State') or row.get('state') or row.get('StateName') or row.get('statename') or '').strip().upper() == state_filter.upper():
-                                writer.writerow(row)
-                target_csv = filtered_csv
-
-            print(f"Parsing {target_csv}")
-            meta, sample = parse_csv_summary(target_csv, sample_n=sample_n, state_filter=None)
-            meta_path = target_csv + ".meta.json"
-            sample_path = target_csv + ".sample.json"
-            with open(meta_path, "w", encoding="utf-8") as fh:
-                json.dump(meta, fh, indent=2)
-            with open(sample_path, "w", encoding="utf-8") as fh:
-                json.dump(sample, fh, indent=2)
-
-            results.append({"url": url, "csv": dest_csv, "meta": meta_path, "sample": sample_path})
-            print(f"Saved meta -> {meta_path}, sample -> {sample_path}\n")
-        except Exception as e:
-            print(f"Failed to download or parse {url}: {e}")
-    client.close()
-    return results
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Download Zillow Research CSVs and produce JSON summaries")
-    parser.add_argument(
-        "--outdir",
-        "-o",
-        default=os.getenv("ZILLOW_DATA_DIR", DEFAULT_OUTDIR),
-        help="Output directory (defaults to ZILLOW_DATA_DIR or python/data/zillow)",
+    metro_x, metro_y = get_metro_series(region)
+    metro_path = os.path.join(outdir, "metro_providence_zordi.png")
+    out = plot_series(
+        metro_x,
+        metro_y,
+        f"Zillow Metro Rent Signal ({region})",
+        "ZORDI Value",
+        metro_path,
+        color="#1e6bff",
     )
-    parser.add_argument("--sample", "-n", type=int, default=10, help="Number of sample rows to save")
-    parser.add_argument("--list", action="store_true", help="List default named datasets")
-    parser.add_argument("--urls", nargs="*", help="One or more dataset URLs (if none, defaults are used)")
-    parser.add_argument("--state", "-s", help="State filter (e.g. RI) to produce a smaller, state-specific CSV and summaries")
+    if out:
+        generated.append(out)
+
+    growth_x, growth_y = get_national_growth_series()
+    growth_path = os.path.join(outdir, "national_zorf_growth.png")
+    out = plot_series(
+        growth_x,
+        growth_y,
+        "Zillow National Rent Growth Forecast",
+        "Growth (%)",
+        growth_path,
+        color="#2ed8a3",
+        baseline=0.0,
+    )
+    if out:
+        generated.append(out)
+
+    return generated
+
+
+def print_dataset_catalog() -> None:
+    print("Detected Zillow datasets:")
+    for ds in get_dataset_catalog():
+        status = "FOUND" if ds["exists"] else "MISSING"
+        print(f"- {ds['filename']} [{status}]")
+        print(f"  purpose: {ds['purpose']}")
+        print(f"  metric: {ds['metric']}")
+        print(f"  granularity: {ds['granularity']}")
+        print(f"  path: {ds['path']}")
+
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate Zillow visualizations from local CSVs")
+    parser.add_argument("--region", default="Providence", help="Metro region search term for metro chart")
+    parser.add_argument("--outdir", default=DEFAULT_OUTDIR, help="Output directory for PNG charts")
+    parser.add_argument("--catalog", action="store_true", help="Print dataset catalog and exit")
     args = parser.parse_args()
 
-    if args.list:
-        print("Default datasets:")
-        for k, v in DEFAULT_DATASETS.items():
-            print(f"  {k}: {v}")
+    if args.catalog:
+        print_dataset_catalog()
         return
 
-    if args.urls and len(args.urls) > 0:
-        urls = args.urls
-    else:
-        urls = list(DEFAULT_DATASETS.values())
+    missing = [k for k, ds in DATASETS.items() if not os.path.isfile(os.path.join(settings.zillow_data_dir, ds.filename))]
+    if missing:
+        print("Warning: some expected dataset files are missing in python/data:")
+        for key in missing:
+            print(f"- {DATASETS[key].filename}")
 
-    results = run_download(urls, outdir=args.outdir, sample_n=args.sample, state_filter=args.state)
-    print("Done. Files saved:")
-    for r in results:
-        print(f" - {r['csv']}")
+    print_dataset_catalog()
+    generated = build_visualizations(args.region, args.outdir)
+
+    if not generated:
+        print("No charts generated. Check that dataset CSVs exist and have numeric date columns.")
+        return
+
+    print("Generated charts:")
+    for path in generated:
+        print(f"- {path}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
