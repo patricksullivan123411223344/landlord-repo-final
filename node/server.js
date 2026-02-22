@@ -17,6 +17,7 @@ const SSL_KEY_PATH = process.env.NODE_SSL_KEY_PATH || '';
 const SSL_CERT_PATH = process.env.NODE_SSL_CERT_PATH || '';
 
 const apiProxy = createProxyMiddleware({
+  pathFilter: ['/api', '/analyze', '/zips', '/health', '/robots.txt'],
   target: PYTHON_TARGET,
   changeOrigin: true,
   ws: false,
@@ -33,7 +34,7 @@ const apiProxy = createProxyMiddleware({
   },
 });
 
-app.use(['/api', '/analyze', '/zips', '/health', '/robots.txt'], apiProxy);
+app.use(apiProxy);
 
 app.use('/css', express.static(path.join(ROOT, 'css')));
 app.use('/js', express.static(path.join(ROOT, 'js')));
