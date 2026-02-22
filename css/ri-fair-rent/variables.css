@@ -1,22 +1,24 @@
 /* ri-fair-rent variables */
 :root {
-  --bg: #f5f2eb;
+  --bg: #f4f6f9;
   --surface: #ffffff;
-  --surface2: #f9f7f2;
-  --border: #e5e0d5;
-  --border2: #ccc8be;
-  --text: #1a1814;
-  --muted: #8a8580;
-  --muted2: #6a6560;
-  --roommate: #2d6a4f;
-  --roommate-bg: #edf7f1;
-  --roommate-border: #b7dfc9;
-  --tenant: #7b3f00;
-  --tenant-bg: #fdf3ea;
-  --tenant-border: #f5c49a;
-  --ai: #1a3a6b;
-  --ai-bg: #eaf0fb;
-  --ai-border: #a8c0ef;
-  --serif: 'Instrument Serif', Georgia, serif;
-  --sans: 'Instrument Sans', system-ui, sans-serif;
+  --surface2: #f8fafd;
+  --border: #d5dbe6;
+  --border2: #bac5d8;
+  --text: #1a1f2b;
+  --muted: #6b7486;
+  --muted2: #4f586b;
+  --roommate: #2ed8a3;
+  --roommate-bg: #e9fbf5;
+  --roommate-border: #bdf3e2;
+  --tenant: #ff6b6b;
+  --tenant-bg: #fff2f2;
+  --tenant-border: #ffc7c7;
+  --ai: #1e6bff;
+  --ai-bg: #edf3ff;
+  --ai-border: #bdd1ff;
+  --primary: #0f2d52;
+  --cta: #1e6bff;
+  --serif: "Inter", "Segoe UI", Arial, sans-serif;
+  --sans: "Inter", "Segoe UI", Arial, sans-serif;
 }

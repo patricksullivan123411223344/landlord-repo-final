@@ -1,75 +1,87 @@
-/* ratingPage.css — Get Rating / Analyze page */
-* {
-  box-sizing: border-box;
+.analysis-card {
+  max-width: 820px;
+  margin: 24px auto 0;
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-lg);
+  box-shadow: var(--ts-shadow);
+  padding: 30px;
+}
+
+h1 {
   margin: 0;
-  padding: 0;
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--ts-text);
 }
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background: #f5f2eb;
-  color: #1a1814;
-  min-height: 100vh;
-  padding: 2rem;
+.intro {
+  margin: 10px 0 22px;
+  color: var(--ts-muted);
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
 }
 
-a {
-  color: #2d6a4f;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-a + a {
-  margin-left: 0.5rem;
+.field-label {
+  font-size: 12px;
+  color: var(--ts-primary);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 input,
-select,
-button {
-  display: block;
-  margin-bottom: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  border: 1px solid #e5e0d5;
-  border-radius: 6px;
-  font-family: inherit;
+select {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: var(--ts-radius-md);
+  border: 1px solid var(--ts-border);
+  font-size: 14px;
+  color: var(--ts-text);
+  background: #fff;
 }
 
 input:focus,
 select:focus {
-  outline: none;
-  border-color: #2d6a4f;
+  outline: 2px solid rgba(30, 107, 255, 0.2);
+  border-color: var(--ts-cta);
 }
 
-button#go {
-  background: #2d6a4f;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  margin-top: 0.5rem;
+#go {
+  margin-top: 18px;
 }
 
-button#go:hover {
-  background: #235c42;
+#out {
+  margin-top: 16px;
+  min-height: 120px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 14px;
+  border-radius: var(--ts-radius-md);
+  border: 1px solid var(--ts-border);
+  background: #fbfcff;
+  color: var(--ts-text);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-pre#out {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #fff;
-  border: 1px solid #e5e0d5;
-  border-radius: 6px;
-  overflow-x: auto;
-  font-size: 0.85rem;
-  line-height: 1.5;
+@media (max-width: 760px) {
+  .analysis-card {
+    padding: 22px;
+    margin-top: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
 }

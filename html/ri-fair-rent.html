@@ -3,64 +3,89 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PVD Tenant Board</title>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <title>Tenant Shield | Tenant Board</title>
+  <link rel="stylesheet" href="/css/brand.css"/>
   <link rel="stylesheet" href="/css/ri-fair-rent.css"/>
 </head>
 <body>
-
-<!-- HEADER -->
-<header class="header">
-  <div class="header-brand"><strong>PVD</strong> Tenant Board</div>
-  <div class="header-sub">Providence · Anonymous · Open</div>
-  <a href="/" class="header-home">← Home</a>
-  <div class="header-actions">
-    <button class="btn-post btn-roommate" onclick="openModal('modal-roommate')">🏠 Find Roommate</button>
-    <button class="btn-post btn-tenant" onclick="openModal('modal-tenant')">💬 Post Question</button>
+<header class="ts-nav">
+  <div class="ts-nav-inner">
+    <a class="ts-brand" href="/">Tenant Shield</a>
+    <span class="ts-brand-sub">Rent Intelligence Platform</span>
+    <nav class="ts-links">
+      <a class="ts-link" href="/">Home</a>
+      <a class="ts-link" href="/rating">Get Rating</a>
+      <a class="ts-link active" href="/fair-rent">Tenant Board</a>
+    </nav>
+    <div class="ts-auth">
+      <span class="ts-auth-user" id="auth-user">Not signed in</span>
+      <button class="ts-btn ts-btn-ghost" id="btn-signout" style="display:none;" onclick="signOut()">Sign Out</button>
+      <button class="ts-btn ts-btn-ghost" id="btn-signin-nav" onclick="focusAuth()">Log In</button>
+      <button class="ts-btn ts-btn-cta" id="btn-signup-nav" onclick="focusAuth()">Sign Up</button>
+    </div>
   </div>
 </header>
 
-<!-- FEED -->
-<div class="layout">
-  <div class="filters">
-    <span class="filter-label">Show:</span>
-    <button class="filter-btn active-all" onclick="setFilter('all', this)">All Posts</button>
-    <button class="filter-btn" onclick="setFilter('roommate', this)">🏠 Roommates</button>
-    <button class="filter-btn" onclick="setFilter('tenant', this)">💬 Q&amp;A</button>
-    <button class="filter-btn" onclick="setFilter('02906', this)">02906</button>
-    <button class="filter-btn" onclick="setFilter('02912', this)">02912</button>
-    <button class="filter-btn" onclick="setFilter('02903', this)">02903</button>
-    <button class="filter-btn" onclick="setFilter('02909', this)">02909</button>
-    <button class="filter-btn" onclick="setFilter('02907', this)">02907</button>
+<main class="ts-page board-page">
+  <div class="board-actions">
+    <button class="ts-btn ts-btn-cta" onclick="openModal('modal-roommate')">Find Roommate</button>
+    <button class="ts-btn board-secondary-btn" onclick="openModal('modal-tenant')">Post Question</button>
   </div>
 
-  <div id="feed"><div class="empty pulsing">Loading board...</div></div>
-</div>
+  <div class="auth-gate" id="auth-gate">
+    <div class="auth-title">Sign in required for Tenant Board</div>
+    <div class="auth-subtitle">Create an account or log in to access community posts, replies, and AI responses.</div>
+    <div class="auth-row">
+      <input class="input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email"/>
+      <input class="input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password"/>
+    </div>
+    <div class="auth-actions">
+      <button class="submit-btn submit-tenant" id="btn-signin" onclick="signIn()">Sign In</button>
+      <button class="submit-btn submit-roommate" id="btn-signup" onclick="signUp()">Create Account</button>
+    </div>
+    <div class="form-note" id="auth-msg" style="display:none;"></div>
+  </div>
 
-<!-- ROOMMATE MODAL -->
+  <div id="board-content" style="display:none;">
+    <div class="filters">
+      <span class="filter-label">Filter</span>
+      <button class="filter-btn active-all" onclick="setFilter('all', this)">All Posts</button>
+      <button class="filter-btn" onclick="setFilter('roommate', this)">Roommates</button>
+      <button class="filter-btn" onclick="setFilter('tenant', this)">Q&amp;A</button>
+      <button class="filter-btn" onclick="setFilter('02906', this)">02906</button>
+      <button class="filter-btn" onclick="setFilter('02912', this)">02912</button>
+      <button class="filter-btn" onclick="setFilter('02903', this)">02903</button>
+      <button class="filter-btn" onclick="setFilter('02909', this)">02909</button>
+      <button class="filter-btn" onclick="setFilter('02907', this)">02907</button>
+    </div>
+
+    <div id="feed"><div class="empty pulsing">Loading board...</div></div>
+  </div>
+</main>
+
 <div class="overlay" id="modal-roommate">
   <div class="modal">
     <div class="modal-stripe stripe-roommate"></div>
     <div class="modal-head">
       <div class="modal-title">Find a Roommate</div>
-      <button class="modal-close" onclick="closeModal('modal-roommate')">×</button>
+      <button class="modal-close" onclick="closeModal('modal-roommate')">x</button>
     </div>
     <div class="modal-body">
       <div class="field">
         <label class="field-label">Display Name</label>
-        <input class="input" id="rm-name" placeholder="e.g. GradStudent, NightOwlNurse — no real name needed"/>
+        <input class="input" id="rm-name" placeholder="No legal name needed"/>
       </div>
       <div class="two-col">
         <div class="field">
           <label class="field-label">ZIP Code</label>
           <select class="input" id="rm-zip">
-            <option value="02903">02903 — Downtown</option>
-            <option value="02906" selected>02906 — East Side</option>
-            <option value="02912">02912 — Brown Area</option>
-            <option value="02908">02908 — Smith Hill</option>
-            <option value="02909">02909 — West End</option>
-            <option value="02907">02907 — South PVD</option>
-            <option value="02905">02905 — Elmwood</option>
+            <option value="02903">02903 - Downtown</option>
+            <option value="02906" selected>02906 - East Side</option>
+            <option value="02912">02912 - Brown Area</option>
+            <option value="02908">02908 - Smith Hill</option>
+            <option value="02909">02909 - West End</option>
+            <option value="02907">02907 - South PVD</option>
+            <option value="02905">02905 - Elmwood</option>
           </select>
         </div>
         <div class="field">
@@ -84,60 +109,59 @@
       </div>
       <div class="field">
         <label class="field-label">About You</label>
-        <textarea class="input" id="rm-bio" placeholder="Student, WFH, have a cat, early riser..."></textarea>
+        <textarea class="input" id="rm-bio" placeholder="Schedule, lifestyle, compatibility details"></textarea>
       </div>
       <div class="field">
         <label class="field-label">Lifestyle</label>
         <div class="lifestyle-grid">
-          <button class="ls-btn" data-val="Early bird" onclick="toggleLS(this)">🌅 Early bird</button>
-          <button class="ls-btn" data-val="Night owl" onclick="toggleLS(this)">🦉 Night owl</button>
-          <button class="ls-btn" data-val="WFH" onclick="toggleLS(this)">💻 WFH</button>
-          <button class="ls-btn" data-val="Quiet" onclick="toggleLS(this)">🤫 Quiet</button>
-          <button class="ls-btn" data-val="Social" onclick="toggleLS(this)">🎉 Social</button>
-          <button class="ls-btn" data-val="Pet-friendly" onclick="toggleLS(this)">🐾 Pet-friendly</button>
-          <button class="ls-btn" data-val="No pets" onclick="toggleLS(this)">🚫 No pets</button>
-          <button class="ls-btn" data-val="Student" onclick="toggleLS(this)">📚 Student</button>
-          <button class="ls-btn" data-val="Non-smoker" onclick="toggleLS(this)">🚭 Non-smoker</button>
+          <button class="ls-btn" data-val="Early bird" onclick="toggleLS(this)">Early bird</button>
+          <button class="ls-btn" data-val="Night owl" onclick="toggleLS(this)">Night owl</button>
+          <button class="ls-btn" data-val="WFH" onclick="toggleLS(this)">WFH</button>
+          <button class="ls-btn" data-val="Quiet" onclick="toggleLS(this)">Quiet</button>
+          <button class="ls-btn" data-val="Social" onclick="toggleLS(this)">Social</button>
+          <button class="ls-btn" data-val="Pet-friendly" onclick="toggleLS(this)">Pet-friendly</button>
+          <button class="ls-btn" data-val="No pets" onclick="toggleLS(this)">No pets</button>
+          <button class="ls-btn" data-val="Student" onclick="toggleLS(this)">Student</button>
+          <button class="ls-btn" data-val="Non-smoker" onclick="toggleLS(this)">Non-smoker</button>
         </div>
       </div>
       <div class="field">
-        <label class="field-label">Contact Info <span style="font-weight:400;text-transform:none;letter-spacing:0;">(shown to interested parties)</span></label>
+        <label class="field-label">Contact Info <span style="font-weight:400;text-transform:none;letter-spacing:0;">(public)</span></label>
         <input class="input" id="rm-contact" placeholder="Email, Signal, Instagram..."/>
       </div>
       <button class="submit-btn submit-roommate" onclick="submitRoommate()">Post Roommate Listing</button>
-      <div class="form-note">Visible to all visitors · Don't include info you're not comfortable sharing publicly</div>
+      <div class="form-note">Do not post sensitive personal data.</div>
     </div>
   </div>
 </div>
 
-<!-- TENANT Q&A MODAL -->
 <div class="overlay" id="modal-tenant">
   <div class="modal">
     <div class="modal-stripe stripe-tenant"></div>
     <div class="modal-head">
       <div class="modal-title">Ask the Community</div>
-      <button class="modal-close" onclick="closeModal('modal-tenant')">×</button>
+      <button class="modal-close" onclick="closeModal('modal-tenant')">x</button>
     </div>
     <div class="modal-body">
       <div class="tenant-info-banner">
-        100% anonymous. Don't include your address or landlord name. An AI trained on RI landlord-tenant law will answer automatically.
+        Anonymous posting. Do not include address or landlord legal names.
       </div>
       <div class="field">
         <label class="field-label">Your Question</label>
-        <input class="input" id="qa-title" placeholder="e.g. Can my landlord keep my deposit for painting?"/>
+        <input class="input" id="qa-title" placeholder="Can my landlord keep my deposit for painting?"/>
       </div>
       <div class="field">
         <label class="field-label">More Detail (optional)</label>
-        <textarea class="input" id="qa-body" placeholder="Describe the situation. More context = better answer."></textarea>
+        <textarea class="input" id="qa-body" placeholder="Context improves response quality."></textarea>
       </div>
       <div class="two-col">
         <div class="field">
           <label class="field-label">Topic</label>
           <select class="input" id="qa-topic">
             <option value="Deposits">Security Deposits</option>
-            <option value="Repairs">Repairs &amp; Maintenance</option>
+            <option value="Repairs">Repairs and Maintenance</option>
             <option value="Eviction">Eviction</option>
-            <option value="Heat">Heat / Utilities</option>
+            <option value="Heat">Heat and Utilities</option>
             <option value="Lease">Lease Terms</option>
             <option value="Entry">Landlord Entry</option>
             <option value="Other">Other</option>
@@ -155,8 +179,8 @@
           </select>
         </div>
       </div>
-      <button class="submit-btn submit-tenant" onclick="submitTenant()">Post Anonymously</button>
-      <div class="form-note">AI will respond automatically · Community can also reply</div>
+      <button class="submit-btn submit-tenant" onclick="submitTenant()">Post Question</button>
+      <div class="form-note">AI and community replies are stored in the board feed.</div>
     </div>
   </div>
 </div>

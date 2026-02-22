@@ -3,20 +3,22 @@ from __future__ import annotations
 import json
 import os
 from typing import List, Optional
+
 from fastapi import HTTPException
 
 # Load SAFMR from python/data/safmr.json
-PY_DIR = os.path.dirname(os.path.dirname(__file__))         # .../python
+PY_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_PATH = os.path.join(PY_DIR, "data", "safmr.json")
 
 with open(DATA_PATH, "r", encoding="utf-8") as f:
     SAFMR = json.load(f)
 
-# Optional Zillow metro data (RI) — provide a recent market signal if available
+# Optional Zillow signal loaders.
 try:
     from python.services.zillow_loader import get_metro_latest
 except Exception:
     get_metro_latest = lambda _: None
+
 try:
     from python.services.zillow_loader import load_national_zori_latest
 except Exception:
@@ -51,9 +53,10 @@ NEARBY_ZIPS = {
     "02911": ["02904", "02908", "02910"],
 }
 
+
 def list_zips():
-    # SAFMR is a dict: { "02903": {...}, ... }
     return [{"zip": z, "neighborhood": v.get("neighborhood", "")} for z, v in SAFMR.items()]
+
 
 def estimate_fair_rent(zip_code: str, bedrooms: str, amenities: List[str], sqft: Optional[int] = None):
     if zip_code not in SAFMR:
@@ -68,12 +71,15 @@ def estimate_fair_rent(zip_code: str, bedrooms: str, amenities: List[str], sqft:
 
     adjustments = sum(AMENITY_ADJUSTMENTS.get(a, 0) for a in amenities)
 
-    sqft_delta = 0
+    sqft_delta = 0.0
     if sqft:
         median_sqft = {"studio": 450, "1br": 650, "2br": 850, "3br": 1100}[bed_key]
         sqft_delta = ((sqft - median_sqft) / median_sqft) * base * 0.10
 
     fair_rent = base + adjustments + sqft_delta
+
+    zillow_metro_value = get_metro_latest("Providence") if callable(get_metro_latest) else None
+    zori_national_value = load_national_zori_latest() if callable(load_national_zori_latest) else None
 
     result = {
         "zip_code": zip_code,
@@ -85,21 +91,25 @@ def estimate_fair_rent(zip_code: str, bedrooms: str, amenities: List[str], sqft:
         "fair_rent_mid": round(fair_rent),
         "fair_rent_high": round(fair_rent * 1.07),
         "data_source": "HUD FY2025 Small Area Fair Market Rents",
-        # Zillow metro data is metro-level (Providence); attempt to fetch by metro name
-        "zillow_metro_value": get_metro_latest("Providence") if callable(get_metro_latest) else None,
-        # national ZORI/ZORF growth value (if available)
-        "zori_national_value": load_national_zori_latest() if callable(load_national_zori_latest) else None,
+        # Backward-compatible keys.
+        "zillow_metro_value": zillow_metro_value,
+        "zori_national_value": zori_national_value,
+        # Stable structured block for frontend parsing.
+        "zillow": {
+            "status": "available" if any(isinstance(v, (int, float)) for v in (zillow_metro_value, zori_national_value)) else "missing",
+            "metro_value": zillow_metro_value,
+            "national_value": zori_national_value,
+            "applied_adjustment": 0,
+            "source": "Local Zillow research CSV cache",
+        },
     }
 
-    # Conservative ZORI-based adjustment: apply half of national ZORI percent to SAFMR base
-    zori_val = result.get("zori_national_value")
-    if isinstance(zori_val, (int, float)):
-        # treat as percent change if magnitude looks like a percent
+    # Conservative Zillow-based adjustment: half of national percentage signal.
+    if isinstance(zori_national_value, (int, float)):
         try:
-            adj_pct = float(zori_val)
-            zori_adj = round(base * (adj_pct / 100.0) * 0.5)
+            zori_adj = round(base * (float(zori_national_value) / 100.0) * 0.5)
             result["zori_adjustment"] = zori_adj
-            # update mid/low/high
+            result["zillow"]["applied_adjustment"] = zori_adj
             result["fair_rent_mid"] = round(result["fair_rent_mid"] + zori_adj)
             result["fair_rent_low"] = round(result["fair_rent_mid"] * 0.93)
             result["fair_rent_high"] = round(result["fair_rent_mid"] * 1.07)
@@ -107,6 +117,7 @@ def estimate_fair_rent(zip_code: str, bedrooms: str, amenities: List[str], sqft:
             pass
 
     return result
+
 
 def get_price_flag(asking_rent: float, fair_rent_mid: float):
     if fair_rent_mid == 0:
@@ -125,7 +136,7 @@ def get_price_flag(asking_rent: float, fair_rent_mid: float):
     elif overage > -0.10:
         label, level = "At market rate", "green"
     else:
-        label, level = "Below market — good deal", "green"
+        label, level = "Below market - good deal", "green"
 
     return {
         "level": level,
@@ -134,6 +145,7 @@ def get_price_flag(asking_rent: float, fair_rent_mid: float):
         "monthly_delta": monthly_delta,
         "annual_delta": annual_delta,
     }
+
 
 def get_nearby_comparison(zip_code: str, bedrooms: str, amenities: List[str]):
     nearby = NEARBY_ZIPS.get(zip_code, [])
@@ -144,11 +156,13 @@ def get_nearby_comparison(zip_code: str, bedrooms: str, amenities: List[str]):
         if z in SAFMR:
             base = SAFMR[z][bed_key]
             adj = sum(AMENITY_ADJUSTMENTS.get(a, 0) for a in amenities)
-            results.append({
-                "zip_code": z,
-                "neighborhood": SAFMR[z]["neighborhood"],
-                "estimated_fair_rent": round(base + adj),
-            })
+            results.append(
+                {
+                    "zip_code": z,
+                    "neighborhood": SAFMR[z]["neighborhood"],
+                    "estimated_fair_rent": round(base + adj),
+                }
+            )
 
     results.sort(key=lambda x: x["estimated_fair_rent"])
     return results

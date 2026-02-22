@@ -1,7 +1,4 @@
 # Do not change
 .env
 python/data/zillow/
-<<<<<<< HEAD
-=======
-.env
->>>>>>> recover-local-changes
+codex/config.toml

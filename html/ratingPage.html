@@ -1,26 +1,58 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <Title>Rating Page</Title>
-        <link rel="stylesheet" href="/css/ratingPage.css">
-    </head>
-    <body>
-        <h2>Get Rating</h2>
-        <a href="/fair-rent">Tenant Board</a> · <a href="/">Home</a>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenant Shield | Get Rating</title>
+  <link rel="stylesheet" href="/css/brand.css">
+  <link rel="stylesheet" href="/css/ratingPage.css">
+</head>
+<body>
+  <header class="ts-nav">
+    <div class="ts-nav-inner">
+      <a class="ts-brand" href="/">Tenant Shield</a>
+      <span class="ts-brand-sub">Rent Intelligence Platform</span>
+      <nav class="ts-links">
+        <a class="ts-link" href="/">Home</a>
+        <a class="ts-link active" href="/rating">Get Rating</a>
+        <a class="ts-link" href="/fair-rent">Tenant Board</a>
+      </nav>
+      <div class="ts-auth">
+        <a class="ts-btn ts-btn-ghost" href="/fair-rent#auth-gate">Log In</a>
+        <a class="ts-btn ts-btn-cta" href="/fair-rent#auth-gate">Sign Up</a>
+      </div>
+    </div>
+  </header>
 
+  <main class="ts-page">
+    <section class="analysis-card">
+      <h1>Get Rental Risk Rating</h1>
+      <p class="intro">Run a data-backed affordability and landlord risk check. This workflow is available without login.</p>
+
+      <div class="form-grid">
+        <label class="field-label" for="address">Address</label>
         <input id="address" placeholder="123 Main St, Providence RI" />
+
+        <label class="field-label" for="zip">ZIP code</label>
         <select id="zip"></select>
+
+        <label class="field-label" for="bedrooms">Bedrooms</label>
         <select id="bedrooms">
-            <option value="studio">Studio</option>
-            <option value="1">1 BR</option>
-            <option value="2" selected>2 BR</option>
-            <option value="3">3 BR</option>
+          <option value="studio">Studio</option>
+          <option value="1">1 BR</option>
+          <option value="2" selected>2 BR</option>
+          <option value="3">3 BR</option>
         </select>
+
+        <label class="field-label" for="asking_rent">Asking rent</label>
         <input id="asking_rent" type="number" placeholder="2400" />
+      </div>
 
-        <button id="go">Analyze</button>
-        <pre id="out"></pre>
+      <button id="go" class="ts-btn ts-btn-cta">Analyze</button>
+      <pre id="out" aria-live="polite"></pre>
+    </section>
+  </main>
 
-        <script src="/js/app.js"></script>
-    </body>
+  <script src="/js/app.js"></script>
+</body>
 </html>
