@@ -1,0 +1,19 @@
+{
+  "name": "tenant-shield-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node gateway for Tenant Shield frontend + Python API bridge",
+  "main": "node/server.js",
+  "scripts": {
+    "start": "node node/server.js",
+    "dev": "node node/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.3"
+  }
+}

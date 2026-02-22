@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tenant Shield | Get Rating</title>
+  <title>Tenant Shield | Lease Chat</title>
   <link rel="stylesheet" href="/css/brand.css">
   <link rel="stylesheet" href="/css/ratingPage.css">
 </head>
@@ -14,7 +14,7 @@
       <span class="ts-brand-sub">Rent Intelligence Platform</span>
       <nav class="ts-links">
         <a class="ts-link" href="/">Home</a>
-        <a class="ts-link active" href="/rating">Get Rating</a>
+        <a class="ts-link active" href="/rating">Lease Chat</a>
         <a class="ts-link" href="/fair-rent">Tenant Board</a>
       </nav>
       <div class="ts-auth">
@@ -24,32 +24,21 @@
     </div>
   </header>
 
-  <main class="ts-page">
-    <section class="analysis-card">
-      <h1>Get Rental Risk Rating</h1>
-      <p class="intro">Run a data-backed affordability and landlord risk check. This workflow is available without login.</p>
-
-      <div class="form-grid">
-        <label class="field-label" for="address">Address</label>
-        <input id="address" placeholder="123 Main St, Providence RI" />
-
-        <label class="field-label" for="zip">ZIP code</label>
-        <select id="zip"></select>
-
-        <label class="field-label" for="bedrooms">Bedrooms</label>
-        <select id="bedrooms">
-          <option value="studio">Studio</option>
-          <option value="1">1 BR</option>
-          <option value="2" selected>2 BR</option>
-          <option value="3">3 BR</option>
-        </select>
-
-        <label class="field-label" for="asking_rent">Asking rent</label>
-        <input id="asking_rent" type="number" placeholder="2400" />
+  <main class="ts-page chat-page">
+    <section class="chat-shell" aria-label="Tenant Shield Lease Chat">
+      <div class="chat-head">
+        <h1>Lease & Housing Rights Chat</h1>
+        <p>Ask about your Rhode Island lease, repairs, deposits, notices, eviction process, or landlord obligations. AI responses use local knowledgebase context plus public web context when available.</p>
       </div>
 
-      <button id="go" class="ts-btn ts-btn-cta">Analyze</button>
-      <pre id="out" aria-live="polite"></pre>
+      <div id="chat-log" class="chat-log" aria-live="polite"></div>
+
+      <div class="chat-input-wrap">
+        <textarea id="chat-input" class="chat-input" placeholder="Example: My landlord did not return my security deposit after 25 days. What can I do?" rows="3"></textarea>
+        <div class="chat-actions">
+          <button id="send-btn" class="ts-btn ts-btn-cta" type="button">Send</button>
+        </div>
+      </div>
     </section>
   </main>
 

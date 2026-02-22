@@ -1,107 +1,138 @@
 const $ = (id) => document.getElementById(id);
 
-function prettyCurrency(v) {
-  if (typeof v !== "number" || Number.isNaN(v)) return "N/A";
-  return `$${v.toLocaleString()}`;
-}
+const state = {
+  history: [],
+  sending: false,
+};
 
-function renderAnalyzeOutput(data) {
-  const rent = data?.rent_estimate || {};
-  const flag = data?.flag || {};
-  const zillow = rent?.zillow || {};
+function appendMessage(role, text, sources = []) {
+  const log = $("chat-log");
+  if (!log) return;
 
-  const lines = [
-    "TENANT SHIELD ANALYSIS",
-    "",
-    `Fair rent range: ${prettyCurrency(rent.fair_rent_low)} - ${prettyCurrency(rent.fair_rent_high)}`,
-    `Fair rent midpoint: ${prettyCurrency(rent.fair_rent_mid)}`,
-    `Pricing flag: ${flag.label || "N/A"} (${flag.level || "unknown"})`,
-    `Monthly delta: ${prettyCurrency(flag.monthly_delta)}`,
-    `Annual delta: ${prettyCurrency(flag.annual_delta)}`,
-    "",
-    "Zillow signal",
-    `Status: ${zillow.status || "missing"}`,
-    `Metro value: ${zillow.metro_value ?? "N/A"}`,
-    `National value: ${zillow.national_value ?? "N/A"}`,
-    `Applied adjustment: ${prettyCurrency(zillow.applied_adjustment)}`,
-    "",
-    "Nearby ZIP comparisons",
-  ];
+  const item = document.createElement("div");
+  item.className = `message ${role}`;
 
-  const nearby = Array.isArray(data?.nearby_zips) ? data.nearby_zips : [];
-  if (!nearby.length) {
-    lines.push("- N/A");
-  } else {
-    for (const n of nearby) {
-      lines.push(`- ${n.zip_code} (${n.neighborhood}): ${prettyCurrency(n.estimated_fair_rent)}`);
+  const roleEl = document.createElement("div");
+  roleEl.className = "message-role";
+  roleEl.textContent = role === "user" ? "You" : "Tenant Shield AI";
+
+  const textEl = document.createElement("div");
+  textEl.className = "message-text";
+  textEl.textContent = text;
+
+  item.appendChild(roleEl);
+  item.appendChild(textEl);
+
+  if (role === "assistant" && Array.isArray(sources) && sources.length) {
+    const sourcesEl = document.createElement("div");
+    sourcesEl.className = "message-sources";
+
+    for (const src of sources) {
+      const chip = document.createElement(src.url ? "a" : "span");
+      chip.className = `source-chip ${src.type === "public" ? "public" : ""}`.trim();
+      chip.textContent = src.label || "Source";
+      if (src.url) {
+        chip.href = src.url;
+        chip.target = "_blank";
+        chip.rel = "noreferrer noopener";
+      }
+      sourcesEl.appendChild(chip);
     }
+
+    item.appendChild(sourcesEl);
   }
 
-  lines.push("", "Raw JSON", JSON.stringify(data, null, 2));
-  return lines.join("\n");
+  log.appendChild(item);
+  log.scrollTop = log.scrollHeight;
 }
 
-async function loadZips() {
-  const sel = $("zip");
-  if (!sel) return;
-  const res = await fetch("/zips");
-  if (!res.ok) throw new Error(`Failed loading zips (${res.status})`);
-  const zips = await res.json();
-  sel.innerHTML = "";
-  for (const z of zips) {
-    const opt = document.createElement("option");
-    opt.value = z.zip;
-    opt.textContent = `${z.zip} ${z.neighborhood ? "- " + z.neighborhood : ""}`;
-    sel.appendChild(opt);
+function setTyping(show) {
+  const log = $("chat-log");
+  if (!log) return;
+  const existing = $("typing-indicator");
+  if (show) {
+    if (existing) return;
+    const el = document.createElement("div");
+    el.id = "typing-indicator";
+    el.className = "typing";
+    el.textContent = "Tenant Shield AI is thinking...";
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return;
   }
+  if (existing) existing.remove();
 }
 
-async function analyze() {
-  const out = $("out");
-  if (!out) return;
+function lockInput(lock) {
+  const input = $("chat-input");
+  const send = $("send-btn");
+  if (input) input.disabled = lock;
+  if (send) send.disabled = lock;
+  state.sending = lock;
+}
 
-  const payload = {
-    address: $("address")?.value?.trim() || "",
-    zip_code: $("zip")?.value || "",
-    bedrooms: $("bedrooms")?.value || "2",
-    asking_rent: Number($("asking_rent")?.value || 0),
-    amenities: [],
-    sqft: null,
-  };
+async function sendMessage() {
+  if (state.sending) return;
+  const input = $("chat-input");
+  if (!input) return;
+  const message = input.value.trim();
+  if (!message) return;
 
-  out.textContent = "Analyzing...";
+  appendMessage("user", message);
+  state.history.push({ role: "user", content: message });
+  input.value = "";
 
-  const res = await fetch("/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  lockInput(true);
+  setTyping(true);
 
-  let body;
   try {
-    body = await res.json();
+    const res = await fetch("/api/rating-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        history: state.history,
+      }),
+    });
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      const text = await res.text();
+      appendMessage("assistant", text || "AI returned an unreadable response.");
+      state.history.push({ role: "assistant", content: text || "AI returned an unreadable response." });
+      return;
+    }
+
+    const answer = data?.answer || "No response generated.";
+    const sources = Array.isArray(data?.sources) ? data.sources : [];
+    appendMessage("assistant", answer, sources);
+    state.history.push({ role: "assistant", content: answer });
   } catch {
-    const text = await res.text();
-    out.textContent = text || `Unexpected response (${res.status})`;
-    return;
+    const msg = "Network error: unable to reach chat service.";
+    appendMessage("assistant", msg);
+    state.history.push({ role: "assistant", content: msg });
+  } finally {
+    setTyping(false);
+    lockInput(false);
+    input.focus();
   }
-
-  if (!res.ok) {
-    const detail = body?.detail || body?.message || JSON.stringify(body);
-    out.textContent = `Request failed (${res.status}): ${detail}`;
-    return;
-  }
-
-  out.textContent = renderAnalyzeOutput(body);
 }
 
-window.addEventListener("DOMContentLoaded", async () => {
-  const out = $("out");
-  try {
-    await loadZips();
-  } catch (err) {
-    if (out) out.textContent = `Startup error: ${err?.message || err}`;
-  }
+function initChat() {
+  appendMessage(
+    "assistant",
+    "Hi, I am Tenant Shield AI. Ask me anything about your Rhode Island lease, deposits, repairs, notices, or eviction process."
+  );
 
-  $("go")?.addEventListener("click", analyze);
-});
+  $("send-btn")?.addEventListener("click", sendMessage);
+  $("chat-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+}
+
+window.addEventListener("DOMContentLoaded", initChat);

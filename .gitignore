@@ -1,4 +1,7 @@
-# Do not change
+# Environment secrets
 .env
+.env.*
+!.env.example
+
 python/data/zillow/
 codex/config.toml

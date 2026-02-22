@@ -32,6 +32,7 @@ class Settings:
     zillow_api_key: str | None = _clean_env("ZILLOW_API_KEY")
     zillow_rapidapi_key: str | None = _clean_env("ZILLOW_RAPIDAPI_KEY")
     zillow_data_dir: str = _clean_env("ZILLOW_DATA_DIR") or os.path.join(os.path.dirname(__file__), "data")
+    rag_knowledge_dir: str = _clean_env("RAG_KNOWLEDGE_DIR") or os.path.join(os.path.dirname(__file__), "rag", "knowledge")
     supabase_url: str | None = _clean_env("SUPABASE_URL")
     supabase_anon_key: str | None = _clean_env("SUPABASE_ANON_KEY")
 

@@ -88,16 +88,33 @@ Notes:
 pip install -r requirements.txt
 ```
 
-3. Run the server:
+3. Install Node gateway dependencies:
+
+```bash
+npm install
+```
+
+4. Run Python backend (logic + Gemini + RAG):
 
 ```bash
 uvicorn python.main:app --reload
 ```
 
-4. Open:
+5. Run Node gateway (frontend + API bridge):
+
+```bash
+npm start
+```
+
+6. Open:
 - Home: `http://127.0.0.1:8000/`
 - Rating: `http://127.0.0.1:8000/rating`
 - Tenant Board: `http://127.0.0.1:8000/fair-rent`
+
+If using the Node gateway, use:
+- Home: `http://127.0.0.1:3000/`
+- Rating: `http://127.0.0.1:3000/rating`
+- Tenant Board: `http://127.0.0.1:3000/fair-rent`
 
 ## API Summary
 
