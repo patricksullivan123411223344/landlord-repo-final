@@ -13,11 +13,13 @@ Secrets:
 """
 
 import os
+import httpx
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
+from python.config import settings
 
 # ---- Service Imports ----
 from python.services.fair_rent import (
@@ -64,7 +66,15 @@ def admin_page():
 # ---- Health ----
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "config": {
+            "gemini_configured": bool(settings.gemini_api_key),
+            "gemini_model": settings.gemini_model,
+            "census_configured": bool(settings.census_api_key),
+            "supabase_configured": bool(settings.supabase_url and settings.supabase_anon_key),
+        },
+    }
 
 
 @app.get("/robots.txt")
@@ -77,7 +87,6 @@ def robots():
 @app.get("/api/board-config")
 def board_config():
     """Public config for Tenant Board frontend (Supabase client init)."""
-    from python.config import settings
     return {
         "supabaseUrl": settings.supabase_url or "",
         "supabaseAnonKey": settings.supabase_anon_key or "",
@@ -144,10 +153,68 @@ class AIAnswerRequest(BaseModel):
     topic: str = "Other"
 
 
+def _build_ai_prompt(req: AIAnswerRequest) -> str:
+    return f"""
+You are a legal information assistant for Rhode Island renters.
+Provide concise, practical guidance with clear next steps.
+Do not claim to be a lawyer, and include a brief disclaimer.
+If relevant, mention RI landlord-tenant law concepts and suggest documentation steps.
+
+Topic: {req.topic}
+Question: {req.title}
+Details: {req.body or "No additional details provided."}
+""".strip()
+
+
+def _extract_gemini_text(data: dict) -> str | None:
+    candidates = data.get("candidates") or []
+    if not candidates:
+        return None
+    content = candidates[0].get("content") or {}
+    parts = content.get("parts") or []
+    chunks = [p.get("text", "").strip() for p in parts if p.get("text")]
+    text = "\n".join([c for c in chunks if c])
+    return text or None
+
+
 @app.post("/api/ai-answer")
 async def ai_answer(req: AIAnswerRequest):
-    """Placeholder for RI landlord-tenant law Q&A. AI requires separate configuration."""
-    return {"answer": "AI is not configured. Add GEMINI_API_KEY or another AI provider to .env."}
+    """RI landlord-tenant Q&A via Gemini."""
+    if not settings.gemini_api_key:
+        return {"answer": "AI is not configured. Add GEMINI_API_KEY to .env and restart the server."}
+
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent"
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": _build_ai_prompt(req)}],
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 700,
+        },
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                endpoint,
+                params={"key": settings.gemini_api_key},
+                headers={"Content-Type": "application/json"},
+                json=payload,
+            )
+        if resp.status_code >= 400:
+            return {"answer": "AI is temporarily unavailable. Please try again shortly."}
+
+        data = resp.json()
+        text = _extract_gemini_text(data)
+        if not text:
+            return {"answer": "AI could not generate an answer for this question."}
+        return {"answer": text}
+    except Exception:
+        return {"answer": "AI is temporarily unavailable. Please try again shortly."}
 
 
 # ---- Static Mounts (after routes so API/HTML routes take precedence) ----
